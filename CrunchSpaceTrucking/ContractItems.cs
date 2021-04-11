@@ -20,8 +20,10 @@ namespace CrunchSpaceTrucking
         public void SetAmountToDeliver()
         {
             Random random = new Random();
-            AmountToDeliver = random.Next(MinToDeliver + 1, MaxToDeliver);
-            
+            AmountToDeliver = random.Next(MinToDeliver + 1, MaxToDeliver + 1);
+            TruckingPlugin.Log.Info(AmountToDeliver + "");
+            TruckingPlugin.Log.Info(MinToDeliver + "");
+            TruckingPlugin.Log.Info(MaxToDeliver + "");
         }
         public int GetAmountToDeliver()
         {
@@ -30,8 +32,8 @@ namespace CrunchSpaceTrucking
         public int GetPrice()
         {
             Random random = new Random();
+            return random.Next(MinPrice + 1, MaxPrice + 1);
 
-            return random.Next(MinPrice, MaxPrice);
         }
     }
 }

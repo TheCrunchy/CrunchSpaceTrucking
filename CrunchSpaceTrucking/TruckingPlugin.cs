@@ -195,14 +195,14 @@ namespace CrunchSpaceTrucking
                 s.Replace(" ", "");
             }
             ContractItems temp = new ContractItems();
-            temp.ContractItemId = split[0];
-            temp.ItemType = split[1];
-            temp.SubType = split[2]; 
-            temp.MinToDeliver = int.Parse(split[3]);
-            temp.MaxToDeliver = int.Parse(split[4]);
-            temp.MinPrice = int.Parse(split[5]);
-            temp.MaxPrice = int.Parse(split[6]);
-            temp.chance = int.Parse(split[7]);
+            temp.ContractItemId = split[0].Replace(" ", "");
+            temp.ItemType = split[1].Replace(" ", "");
+            temp.SubType = split[2].Replace(" ", ""); 
+            temp.MinToDeliver = int.Parse(split[3].Replace(" ", ""));
+            temp.MaxToDeliver = int.Parse(split[4].Replace(" ", ""));
+            temp.MinPrice = int.Parse(split[5].Replace(" ", ""));
+            temp.MaxPrice = int.Parse(split[6].Replace(" ", ""));
+            temp.chance = int.Parse(split[7].Replace(" ", ""));
             return temp;
         }
 
