@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{37CAC7CE-F6A9-4910-BDF7-5E4DC6508B70}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>CrunchSpaceTrucking</RootNamespace>
+    <AssemblyName>CrunchSpaceTrucking</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="NLog">
+      <HintPath>..\..\..\FixPlayerCommand\FixPlayerCommand\bin\Debug\NLog.dll</HintPath>
+    </Reference>
+    <Reference Include="Sandbox.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\FixPlayerCommand\FixPlayerCommand\bin\Debug\Sandbox.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Sandbox.Game">
+      <HintPath>..\..\..\FixPlayerCommand\FixPlayerCommand\bin\Debug\Sandbox.Game.dll</HintPath>
+    </Reference>
+    <Reference Include="SpaceEngineers.Game">
+      <HintPath>..\..\..\Money\MoneyPlugin\MoneyPlugin\bin\Debug\SpaceEngineers.Game.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Torch">
+      <HintPath>..\..\..\Money\MoneyPlugin\MoneyPlugin\bin\Debug\Torch.dll</HintPath>
+    </Reference>
+    <Reference Include="Torch.API">
+      <HintPath>..\..\..\FixPlayerCommand\FixPlayerCommand\bin\Debug\Torch.API.dll</HintPath>
+    </Reference>
+    <Reference Include="Torch.Server">
+      <HintPath>..\..\..\FixPlayerCommand\FixPlayerCommand\bin\Debug\Torch.Server.exe</HintPath>
+    </Reference>
+    <Reference Include="VRage">
+      <HintPath>..\..\..\..\4 Torch Server\DedicatedServer64\VRage.dll</HintPath>
+    </Reference>
+    <Reference Include="VRage.Game">
+      <HintPath>..\..\..\FixPlayerCommand\FixPlayerCommand\bin\Debug\VRage.Game.dll</HintPath>
+    </Reference>
+    <Reference Include="VRage.Library">
+      <HintPath>..\..\..\..\4 Torch Server\DedicatedServer64\VRage.Library.dll</HintPath>
+    </Reference>
+    <Reference Include="VRage.Math">
+      <HintPath>..\..\..\..\4 Torch Server\DedicatedServer64\VRage.Math.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Commands.cs" />
+    <Compile Include="Properties\FacUtils.cs" />
+    <Compile Include="TruckingPlugin.cs" />
+    <Compile Include="Contract.cs" />
+    <Compile Include="ContractItems.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
