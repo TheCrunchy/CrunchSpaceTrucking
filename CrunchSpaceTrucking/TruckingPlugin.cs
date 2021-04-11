@@ -18,6 +18,13 @@ using System.Text.RegularExpressions;
 using System.Globalization;
 using Sandbox.Game.Entities.Character;
 using VRage.Game.ModAPI;
+using Sandbox.Game.World;
+using Sandbox.Game.Entities;
+using Sandbox.ModAPI;
+using VRage.Game.ModAPI.Ingame;
+using Sandbox.Engine.Multiplayer;
+using Sandbox.Game.Multiplayer;
+using Sandbox.Game.GameSystems.BankingAndCurrency;
 
 namespace CrunchSpaceTrucking
 {
@@ -30,26 +37,123 @@ namespace CrunchSpaceTrucking
         public static string path;
         public static bool UsingDatabase = false;
         private static List<MyGps> DeliveryLocations = new List<MyGps>();
-        public static Boolean getChance(int minimalChance)
+        public static Contract getActiveContract(ulong steamid)
         {
-            Random random = new Random();
-            return random.Next(99) + 1 <= minimalChance;
+            if (TruckingPlugin.UsingDatabase)
+            {
+
+            }
+            else
+            {
+                if (TruckingPlugin.activeContracts.TryGetValue(steamid, out Contract contract))
+                {
+                    return contract;
+                }
+            }
+            return null;
         }
-        // 
+        public static void RemoveContract(ulong steamid, long identityId)
+        {
+            TruckingPlugin.activeContracts.Remove(steamid);
+            List<IMyGps> playerList = new List<IMyGps>();
+            MySession.Static.Gpss.GetGpsList(identityId, playerList);
+            foreach (IMyGps gps in playerList)
+            {
+                if (gps.Name.Contains("Delivery Location, within 1km use !contract deliver"))
+                {
+                    MyAPIGateway.Session?.GPS.RemoveGps(identityId, gps);
+                }
+            }
+        }
+        public static void SendMessage(string author, string message, Color color, ulong steamID)
+        {
+
+
+            Logger _chatLog = LogManager.GetLogger("Chat");
+            ScriptedChatMsg scriptedChatMsg1 = new ScriptedChatMsg();
+            scriptedChatMsg1.Author = author;
+            scriptedChatMsg1.Text = message;
+            scriptedChatMsg1.Font = "White";
+            scriptedChatMsg1.Color = color;
+            scriptedChatMsg1.Target = Sync.Players.TryGetIdentityId(steamID);
+            ScriptedChatMsg scriptedChatMsg2 = scriptedChatMsg1;
+            MyMultiplayerBase.SendScriptedChatMessage(ref scriptedChatMsg2);
+        }
+        private int tick = 0;
+        public override async void Update()
+        {
+            try
+            {
+                ++this.tick;
+                if (this.tick % 128 == 0)
+                {
+                    foreach (MyPlayer onlinePlayer in MySession.Static.Players.GetOnlinePlayers())
+                    {
+                        MyPlayer playerOnline = onlinePlayer;
+                        if (onlinePlayer.Character != null)
+                        {
+                            if (TruckingPlugin.getActiveContract(onlinePlayer.Id.SteamId) != null)
+                            {
+                                Contract contract = TruckingPlugin.getActiveContract(onlinePlayer.Id.SteamId);
+                                Vector3D coords = contract.GetDeliveryLocation().Coords;
+                                float distance = Vector3.Distance(coords, onlinePlayer.Character.PositionComp.GetPosition());
+                                if (distance <= 1000)
+                                {
+
+                                    List<VRage.ModAPI.IMyEntity> l = new List<VRage.ModAPI.IMyEntity>();
+
+                                    BoundingSphereD sphere = new BoundingSphereD(onlinePlayer.Character.PositionComp.GetPosition(), 1000);
+                                    l = MyAPIGateway.Entities.GetEntitiesInSphere(ref sphere);
+
+                                    Dictionary<MyDefinitionId, int> itemsToRemove = new Dictionary<MyDefinitionId, int>();
+                                    int pay = 0;
+                                    foreach (ContractItems item in contract.getItemsInContract())
+                                    {
+                                        if (MyDefinitionId.TryParse("MyObjectBuilder_" + item.ItemType, item.SubType, out MyDefinitionId id))
+                                        {
+                                            itemsToRemove.Add(id, item.AmountToDeliver);
+                                            pay += item.AmountToDeliver * item.GetPrice();
+                                        }
+                                    }
+
+                                    foreach (IMyEntity entity in l)
+                                    {
+                                        if (entity is MyCubeGrid grid)
+                                        {
+                                            List<VRage.Game.ModAPI.IMyInventory> inventories = TakeTheItems.GetInventories(grid);
+                                      
+                                            if (FacUtils.IsOwnerOrFactionOwned(grid, onlinePlayer.Identity.IdentityId, true) && Vector3.Distance(coords, grid.PositionComp.GetPosition()) <= 1000)
+                                            {
+                                                if (TakeTheItems.ConsumeComponents(inventories, itemsToRemove, onlinePlayer.Id.SteamId))
+                                                {
+                                                    MyBankingSystem.ChangeBalance(onlinePlayer.Identity.IdentityId, pay);
+                                                    TruckingPlugin.RemoveContract(onlinePlayer.Id.SteamId, onlinePlayer.Identity.IdentityId);
+                                                    TruckingPlugin.SendMessage("The Boss", "Contract Complete, Payment delivered to bank account.", Color.Purple, onlinePlayer.Id.SteamId);
+                                                    return;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TruckingPlugin.Log.Info("Space trucking error " + ex.ToString());
+            }
+        }
         public static MyGps getDeliveryLocation()
         {
             //List<MyGps> possibleLocations = new List<MyGps>();
-            //TruckingPlugin.Log.Info(DeliveryLocations.Count);
-            //foreach (MyGps gps in DeliveryLocations)
-            //{
-            //    Vector3D coords = gps.Coords;
-            //    float distance = Vector3.Distance(coords, character.PositionComp.GetPosition());
-            //    TruckingPlugin.Log.Info(distance + "");
-            //    if (distance <= minDistance)
-            //    {
-            //        possibleLocations.Add(gps);
-            //    }
-            //}
+            TruckingPlugin.Log.Info(DeliveryLocations.Count);
+            foreach (MyGps gps in DeliveryLocations)
+            {
+                TruckingPlugin.Log.Info(gps.Name);
+     
+            }
             //if (possibleLocations.Count == 0)
             //{
             //    foreach (MyGps gps in DeliveryLocations)
@@ -65,6 +169,10 @@ namespace CrunchSpaceTrucking
             //    }
             //}
             Random random = new Random();
+            if (DeliveryLocations.Count == 1)
+            {
+                return DeliveryLocations[0];
+            }
             int r = random.Next(DeliveryLocations.Count);
             return DeliveryLocations[r];
         }
@@ -79,18 +187,18 @@ namespace CrunchSpaceTrucking
             Random random = new Random();
             foreach (ContractItems item in SortedList)
             {
+                item.SetAmountToDeliver();
                 int chance = random.Next(101);
                 if (chance <= item.chance && amountPicked < AmountToPick)
                 {
-                    item.SetAmountToDeliver();
                     returnList.Add(item);
                     amountPicked++;
                 }
             }
             if (returnList.Count == 0)
             {
-                int index = random.Next(items.Count);
-                ContractItems temp = items.ElementAt(index);
+                int index = random.Next(SortedList.Count);
+                ContractItems temp = SortedList.ElementAt(index);
 
                 returnList.Add(temp);
             }
@@ -203,6 +311,7 @@ namespace CrunchSpaceTrucking
             temp.MinPrice = int.Parse(split[5].Replace(" ", ""));
             temp.MaxPrice = int.Parse(split[6].Replace(" ", ""));
             temp.chance = int.Parse(split[7].Replace(" ", ""));
+    
             return temp;
         }
 
@@ -265,7 +374,7 @@ namespace CrunchSpaceTrucking
                 if (System.IO.File.Exists(TruckingPlugin.path + "//SpaceTrucking//deliveryLocations.txt"))
                 {
                     String[] line = File.ReadAllLines(TruckingPlugin.path + "//SpaceTrucking//deliveryLocations.txt");
-                    for (int i = 1; i < line.Length; i++)
+                    for (int i = 0; i < line.Length; i++)
                     {
                         if (ScanChat(line[i]) != null)
                         {

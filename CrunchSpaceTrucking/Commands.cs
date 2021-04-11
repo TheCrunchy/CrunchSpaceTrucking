@@ -73,29 +73,6 @@ namespace CrunchSpaceTrucking
             File.WriteAllText(TruckingPlugin.path + "//SpaceTrucking//definitions.csv", output.ToString());
         }
 
-        [Command("truck1", "output definitions")]
-        [Permission(MyPromoteLevel.Admin)]
-        public void TryLoadFile()
-        {
-
-
-        }
-        public Contract getActiveContract(ulong steamid)
-        {
-            if (TruckingPlugin.UsingDatabase)
-            {
-
-            }
-            else
-            {
-                if (TruckingPlugin.activeContracts.TryGetValue(steamid, out Contract contract))
-                {
-                    return contract;
-                }
-            }
-            return null;
-        }
-
         public Boolean getChance(int minimalChance)
         {
             Random random = new Random();
@@ -115,7 +92,7 @@ namespace CrunchSpaceTrucking
         [Permission(MyPromoteLevel.None)]
         public void QuitContract()
         {
-            if (getActiveContract(Context.Player.SteamUserId) != null)
+            if (TruckingPlugin.getActiveContract(Context.Player.SteamUserId) != null)
             {
                 Context.Respond("This will probably have a reputation loss in the future", "The Boss");
                 TruckingPlugin.activeContracts.Remove(Context.Player.SteamUserId);
@@ -135,15 +112,19 @@ namespace CrunchSpaceTrucking
         [Permission(MyPromoteLevel.None)]
         public void ContractDetails()
         {
-            Contract contract = getActiveContract(Context.Player.SteamUserId);
+            Contract contract = TruckingPlugin.getActiveContract(Context.Player.SteamUserId);
             StringBuilder contractDetails = new StringBuilder();
             if (contract != null)
             {
+                int pay = 0;
                 foreach (ContractItems tempitem in contract.getItemsInContract())
                 {
                     contractDetails.AppendLine("Obtain and deliver " + String.Format("{0:n0}", tempitem.AmountToDeliver) + " " + tempitem.SubType + " " + tempitem.ItemType);
+                    pay += tempitem.AmountToDeliver * tempitem.MinPrice;
                 }
+                contractDetails.AppendLine("");
 
+               contractDetails.AppendLine("Minimum Payment " + String.Format("{0:n0}", pay) + " SC.");
 
                 DialogMessage m = new DialogMessage("Contract Details", "Obtain and deliver these items", contractDetails.ToString());
                 ModCommunication.SendMessageTo(m, Context.Player.SteamUserId);
@@ -153,88 +134,15 @@ namespace CrunchSpaceTrucking
                 Context.Respond("You dont currently have a contract", "The Boss");
             }
         }
-        private List<VRage.Game.ModAPI.IMyInventory> GetInventories(MyCubeGrid grid)
-        {
-            List<VRage.Game.ModAPI.IMyInventory> inventories = new List<VRage.Game.ModAPI.IMyInventory>();
 
-            foreach (var block in grid.GetFatBlocks())
-            {
 
-                for (int i = 0; i < block.InventoryCount; i++)
-                {
-                    VRage.Game.ModAPI.IMyInventory inv = ((VRage.Game.ModAPI.IMyCubeBlock)block).GetInventory(i);
-                    inventories.Add(inv);
-                }
 
-            }
-            return inventories;
-        }
-
-        private MyFixedPoint CountComponents(IEnumerable<VRage.Game.ModAPI.IMyInventory> inventories, MyDefinitionId id, int amount, ICollection<MyTuple<VRage.Game.ModAPI.IMyInventory, VRage.Game.ModAPI.IMyInventoryItem, MyFixedPoint>> items)
-        {
-            MyFixedPoint targetAmount = amount;
-            foreach (VRage.Game.ModAPI.IMyInventory inv in inventories)
-            {
-                VRage.Game.ModAPI.IMyInventoryItem invItem = inv.FindItem(id);
-                if (invItem != null)
-                {
-                    if (invItem.Amount >= targetAmount)
-                    {
-                        items.Add(new MyTuple<VRage.Game.ModAPI.IMyInventory, VRage.Game.ModAPI.IMyInventoryItem, MyFixedPoint>(inv, invItem, targetAmount));
-                        targetAmount = 0;
-                        break;
-                    }
-                    else
-                    {
-                        items.Add(new MyTuple<VRage.Game.ModAPI.IMyInventory, VRage.Game.ModAPI.IMyInventoryItem, MyFixedPoint>(inv, invItem, invItem.Amount));
-                        targetAmount -= invItem.Amount;
-                    }
-                }
-            }
-            return targetAmount;
-        }
-        private bool ConsumeComponents(IEnumerable<VRage.Game.ModAPI.IMyInventory> inventories, IDictionary<MyDefinitionId, int> components)
-        {
-            List<MyTuple<VRage.Game.ModAPI.IMyInventory, VRage.Game.ModAPI.IMyInventoryItem, VRage.MyFixedPoint>> toRemove = new List<MyTuple<VRage.Game.ModAPI.IMyInventory, VRage.Game.ModAPI.IMyInventoryItem, VRage.MyFixedPoint>>();
-            foreach (KeyValuePair<MyDefinitionId, int> c in components)
-            {
-                TruckingPlugin.Log.Info(c.Key.SubtypeName);
-                MyFixedPoint needed = CountComponents(inventories, c.Key, c.Value, toRemove);
-                TruckingPlugin.Log.Info(needed + "");
-                if (needed > 0)
-                {
-                    Context.Respond("Missing " + needed + " " + c.Key.SubtypeName + " All items must be inside one grid.");
-                    return false;
-                }
-            }
-
-            foreach (MyTuple<VRage.Game.ModAPI.IMyInventory, VRage.Game.ModAPI.IMyInventoryItem, MyFixedPoint> item in toRemove)
-                MyAPIGateway.Utilities.InvokeOnGameThread(() =>
-                {
-                    item.Item1.RemoveItemAmount(item.Item2, item.Item3);
-                });
-            return true;
-        }
-
-        public void RemoveContract(ulong steamid, long identityId)
-        {
-            TruckingPlugin.activeContracts.Remove(steamid);
-            List<IMyGps> playerList = new List<IMyGps>();
-            MySession.Static.Gpss.GetGpsList(identityId, playerList);
-            foreach (IMyGps gps in playerList)
-            {
-                if (gps.Name.Contains("Delivery Location, within 1km use !contract deliver"))
-                {
-                    MyAPIGateway.Session?.GPS.RemoveGps(identityId, gps);
-                }
-            }
-        }
 
         [Command("contract deliver", "deliver a contract")]
         [Permission(MyPromoteLevel.None)]
         public void DeliverContract()
         {
-            Contract contract = getActiveContract(Context.Player.SteamUserId);
+            Contract contract = TruckingPlugin.getActiveContract(Context.Player.SteamUserId);
             StringBuilder contractDetails = new StringBuilder();
             if (contract != null)
             {
@@ -266,25 +174,20 @@ namespace CrunchSpaceTrucking
                 {
                     if (entity is MyCubeGrid grid)
                     {
-                        List<VRage.Game.ModAPI.IMyInventory> inventories = GetInventories(grid);
-                        Context.Respond("grid");
+                        List<VRage.Game.ModAPI.IMyInventory> inventories = TakeTheItems.GetInventories(grid);
                         if (FacUtils.IsOwnerOrFactionOwned(grid, Context.Player.IdentityId, true))
                         {
-                            Context.Respond("Grid is owned");
-
-                            if (ConsumeComponents(inventories, itemsToRemove))
+                            if (TakeTheItems.ConsumeComponents(inventories, itemsToRemove, Context.Player.SteamUserId))
                             {
-                                Context.Respond("has items");
-
                                 MyBankingSystem.ChangeBalance(Context.Player.Identity.IdentityId, pay);
-                                RemoveContract(Context.Player.SteamUserId, Context.Player.IdentityId);
-                                Context.Respond("Contract complete! Items removed from cargo.", "The Boss");
-                                return;
+                                TruckingPlugin.RemoveContract(Context.Player.SteamUserId, Context.Player.IdentityId);
+                                    TruckingPlugin.SendMessage("The Boss", "Contract Complete, Payment delivered to bank account.", Color.Purple, Context.Player.SteamUserId);
+                                    return;
                             }
                         }
                     }
                 }
-                Context.Respond("Could not find owned grid in vicinity with the required items.");
+                Context.Respond("Could not find owned grid in vicinity with the required items.", "The Boss");
 
 
                   }
@@ -302,7 +205,7 @@ namespace CrunchSpaceTrucking
         public void TakeContract(string type)
         {
 
-            if (getActiveContract(Context.Player.SteamUserId) != null)
+            if (TruckingPlugin.getActiveContract(Context.Player.SteamUserId) != null)
             {
                 Context.Respond("You cannot take another contract while you have an active one. To quit a contract use !contract quit", "The Boss");
             }
@@ -317,9 +220,11 @@ namespace CrunchSpaceTrucking
                 StringBuilder contractDetails = new StringBuilder();
                 List<ContractItems> items = new List<ContractItems>();
                 items = TruckingPlugin.getRandomContractItem(type.ToLower());
+                int pay = 0;
                 foreach (ContractItems tempitem in items)
                 {
                     contractDetails.AppendLine("Obtain and deliver " + String.Format("{0:n0}", tempitem.AmountToDeliver) + " " + tempitem.SubType + " " + tempitem.ItemType);
+                    pay += tempitem.AmountToDeliver * tempitem.MinPrice;
                 }
                 MyGps gps = TruckingPlugin.getDeliveryLocation();
                 gps.Name = "Delivery Location, within 1km use !contract deliver";
@@ -337,6 +242,9 @@ namespace CrunchSpaceTrucking
                         MyAPIGateway.Session?.GPS.RemoveGps(Context.Player.Identity.IdentityId, gps2);
                     }
                 }
+                contractDetails.AppendLine("");
+
+                contractDetails.AppendLine("Minimum Payment " + String.Format("{0:n0}", pay) + " SC.");
                 Contract contract = new Contract(Context.Player.SteamUserId, items, gps.Coords.X, gps.Coords.Y, gps.Coords.Z, 50);
                 AddContractToStorage(Context.Player.SteamUserId, contract);
                 gpscol.SendAddGps(Context.Player.Identity.IdentityId, ref gps);
