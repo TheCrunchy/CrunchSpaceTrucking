@@ -17,10 +17,16 @@ namespace CrunchSpaceTrucking
         public int MaxPrice;
         public int AmountToDeliver;
         public int chance;
+        public int reputation;
+        public string difficulty;
         public void SetAmountToDeliver()
         {
             Random random = new Random();
             AmountToDeliver = random.Next(MinToDeliver, MaxToDeliver + 1);
+        }
+        public void SetAmountToDeliver(int amount)
+        {
+            AmountToDeliver = amount;
         }
         public int GetAmountToDeliver()
         {

@@ -48,10 +48,18 @@ namespace CrunchSpaceTrucking
         }
         public MyGps GetDeliveryLocation()
         {
-            MyGps gps = new MyGps();
-            gps.Name = "Delivery Location within 1km - !contract deliver";
-            Vector3D newCoords = new Vector3D(GpsX, GpsY, GpsZ);
-            gps.Coords = newCoords;
+            MyGps gps = new MyGps
+            {
+                Coords = new Vector3D(GpsX, GpsY, GpsZ),
+                Name = "Delivery Location, bring hauling vehicle within 300m",
+                DisplayName = "Delivery Location, bring hauling vehicle within 300m",
+                Description = TruckingPlugin.MakeContractDetails(items).ToString(),
+                GPSColor = Color.Orange,
+                IsContainerGPS = true,
+                ShowOnHud = true,
+                DiscardAt = new TimeSpan(50000)
+            };
+            gps.UpdateHash();
             return gps;
         }
         public void SetDeliveryLocation(double x, double y, double z)
@@ -62,7 +70,13 @@ namespace CrunchSpaceTrucking
         }
         public int GetReputation()
         {
-            return this.Reputation;
+            int rep = 0;
+            foreach (ContractItems item in items)
+            {
+                rep += item.reputation;
+            }
+            return rep;
         }
+
     }
 }

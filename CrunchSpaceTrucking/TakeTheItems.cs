@@ -61,7 +61,7 @@ namespace CrunchSpaceTrucking
                 MyFixedPoint needed = CountComponents(inventories, c.Key, c.Value, toRemove);
                 if (needed > 0)
                 {
-                    TruckingPlugin.SendMessage("The Boss", "Missing " + needed + " " + c.Key.SubtypeName + " All items must be inside one grid.", Color.Purple, steamId);
+                    TruckingPlugin.SendMessage("The Boss", "Missing " + needed + " " + c.Key.SubtypeName + " "+  c.Key.TypeId +" All items must be inside one grid.", Color.Purple, steamId);
                     // Context.Respond("Missing " + needed + " " + c.Key.SubtypeName + " All items must be inside one grid.");
                     return false;
                 }

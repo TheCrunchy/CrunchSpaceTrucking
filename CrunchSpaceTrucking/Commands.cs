@@ -86,6 +86,7 @@ namespace CrunchSpaceTrucking
             else
             {
                 TruckingPlugin.activeContracts.Add(steamid, contract);
+                Database.addNewContract(steamid, contract);
             }
         }
         [Command("contract quit", "quit a contract")]
@@ -94,18 +95,24 @@ namespace CrunchSpaceTrucking
         {
             if (TruckingPlugin.getActiveContract(Context.Player.SteamUserId) != null)
             {
-                Context.Respond("This will probably have a reputation loss in the future", "The Boss");
-                TruckingPlugin.activeContracts.Remove(Context.Player.SteamUserId);
+                TruckingPlugin.SendMessage("The Boss", "Contract quit, reputation lowered", Color.Purple, Context.Player.SteamUserId);
+                Database.RemoveContract(Context.Player.SteamUserId, false, TruckingPlugin.getActiveContract(Context.Player.SteamUserId), Context.Player.IdentityId);
                 List<IMyGps> playerList = new List<IMyGps>();
                 MySession.Static.Gpss.GetGpsList(Context.Player.IdentityId, playerList);
                 foreach (IMyGps gps in playerList)
                 {
-                    if (gps.Name.Contains("Delivery Location, within 1km use !contract deliver"))
+                    if (gps.Name.Contains("Delivery Location, bring hauling vehicle within 300m"))
                     {
                         MyAPIGateway.Session?.GPS.RemoveGps(Context.Player.Identity.IdentityId, gps);
                     }
                 }
             }
+
+        }
+        [Command("setupDatabase", "show contract details")]
+        [Permission(MyPromoteLevel.None)]
+        public void SetupDatabase()
+        {
 
         }
         [Command("contract details", "show contract details")]
@@ -116,16 +123,13 @@ namespace CrunchSpaceTrucking
             StringBuilder contractDetails = new StringBuilder();
             if (contract != null)
             {
-                int pay = 0;
-                foreach (ContractItems tempitem in contract.getItemsInContract())
-                {
-                    contractDetails.AppendLine("Obtain and deliver " + String.Format("{0:n0}", tempitem.AmountToDeliver) + " " + tempitem.SubType + " " + tempitem.ItemType);
-                    pay += tempitem.AmountToDeliver * tempitem.MinPrice;
-                }
-                contractDetails.AppendLine("");
+                int pay = TruckingPlugin.GetMinimumPay(contract.getItemsInContract());
+                contractDetails = TruckingPlugin.MakeContractDetails(contract.getItemsInContract());
+                MyGps gps = TruckingPlugin.getDeliveryLocation();
 
-               contractDetails.AppendLine("Minimum Payment " + String.Format("{0:n0}", pay) + " SC.");
+                MyGpsCollection gpscol = (MyGpsCollection)MyAPIGateway.Session?.GPS;
 
+                gpscol.SendAddGps(Context.Player.Identity.IdentityId, ref gps);
                 DialogMessage m = new DialogMessage("Contract Details", "Obtain and deliver these items", contractDetails.ToString());
                 ModCommunication.SendMessageTo(m, Context.Player.SteamUserId);
             }
@@ -180,7 +184,7 @@ namespace CrunchSpaceTrucking
                             if (TakeTheItems.ConsumeComponents(inventories, itemsToRemove, Context.Player.SteamUserId))
                             {
                                 MyBankingSystem.ChangeBalance(Context.Player.Identity.IdentityId, pay);
-                                TruckingPlugin.RemoveContract(Context.Player.SteamUserId, Context.Player.IdentityId);
+                                Database.RemoveContract(Context.Player.SteamUserId, true , contract, Context.Player.IdentityId);
                                     TruckingPlugin.SendMessage("The Boss", "Contract Complete, Payment delivered to bank account.", Color.Purple, Context.Player.SteamUserId);
                                     return;
                             }
@@ -220,31 +224,21 @@ namespace CrunchSpaceTrucking
                 StringBuilder contractDetails = new StringBuilder();
                 List<ContractItems> items = new List<ContractItems>();
                 items = TruckingPlugin.getRandomContractItem(type.ToLower());
-                int pay = 0;
-                foreach (ContractItems tempitem in items)
-                {
-                    contractDetails.AppendLine("Obtain and deliver " + String.Format("{0:n0}", tempitem.AmountToDeliver) + " " + tempitem.SubType + " " + tempitem.ItemType);
-                    pay += tempitem.AmountToDeliver * tempitem.MinPrice;
-                }
+                int pay = TruckingPlugin.GetMinimumPay(items);
+                contractDetails = TruckingPlugin.MakeContractDetails(items);
+
                 MyGps gps = TruckingPlugin.getDeliveryLocation();
-                gps.Name = "Delivery Location, within 1km use !contract deliver";
-                gps.GPSColor = Color.Orange;
-                gps.Description = contractDetails.ToString();
-                gps.AlwaysVisible = true;
-                gps.ShowOnHud = true;
+         
                 List<IMyGps> playerList = new List<IMyGps>();
                 MySession.Static.Gpss.GetGpsList(Context.Player.IdentityId, playerList);
                 MyGpsCollection gpscol = (MyGpsCollection)MyAPIGateway.Session?.GPS;
                 foreach (IMyGps gps2 in playerList)
                 {
-                    if (gps2.Name.Contains("Delivery Location, within 1km use !contract deliver"))
+                    if (gps2.Name.Contains("Delivery Location, bring hauling vehicle within 300m"))
                     {
                         MyAPIGateway.Session?.GPS.RemoveGps(Context.Player.Identity.IdentityId, gps2);
                     }
                 }
-                contractDetails.AppendLine("");
-
-                contractDetails.AppendLine("Minimum Payment " + String.Format("{0:n0}", pay) + " SC.");
                 Contract contract = new Contract(Context.Player.SteamUserId, items, gps.Coords.X, gps.Coords.Y, gps.Coords.Z, 50);
                 AddContractToStorage(Context.Player.SteamUserId, contract);
                 gpscol.SendAddGps(Context.Player.Identity.IdentityId, ref gps);
