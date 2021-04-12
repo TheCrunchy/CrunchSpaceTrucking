@@ -204,6 +204,21 @@ namespace CrunchSpaceTrucking
                 Context.Respond("You dont have an active contract.", "The Boss");
             }
         }
+        [Command("contract rep", "check reputation")]
+        [Permission(MyPromoteLevel.None)]
+        public void CheckRep()
+        {
+
+            if (TruckingPlugin.reputation.TryGetValue(Context.Player.SteamUserId, out int rep))
+            {
+                Context.Respond("You have " + rep + " reputation.");
+            }
+            else
+            {
+                Context.Respond("You have 0 reputation.");
+            }
+
+        }
         [Command("contract take", "take a contract")]
         [Permission(MyPromoteLevel.Admin)]
         public void TakeContract()

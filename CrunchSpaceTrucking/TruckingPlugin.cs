@@ -40,13 +40,61 @@ namespace CrunchSpaceTrucking
         public static string path;
         public static bool UsingDatabase = false;
         private static List<MyGps> DeliveryLocations = new List<MyGps>();
-        public static ConfigFile config;
+        public static ConfigFile config = new ConfigFile();
+
+        private TorchSessionManager sessionManager;
+        public override void Init(ITorchBase torch)
+        {
+            base.Init(torch);
+            Log.Info("Loading Space Trucking");
+            path = StoragePath;
+            SetupConfig();
+            sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
+            if (sessionManager != null)
+            {
+                sessionManager.SessionStateChanged += SessionChanged;
+
+            }
+        }
+
+        public static ConfigFile LoadConfig()
+        {
+            FileUtils utils = new FileUtils();
+            config = utils.ReadFromXmlFile<ConfigFile>(TruckingPlugin.path + "//SpaceTrucking//config.xml");
+
+
+            return config;
+        }
+        public static ConfigFile SaveConfig()
+        {
+            FileUtils utils = new FileUtils();
+            utils.WriteToXmlFile<ConfigFile>(TruckingPlugin.path + "//SpaceTrucking//config.xml", config);
+
+            return config;
+        }
+        private void SetupConfig()
+        {
+            FileUtils utils = new FileUtils();
+            path = StoragePath;
+            if (File.Exists(TruckingPlugin.path + "//SpaceTrucking//config.xml"))
+            {
+                config = utils.ReadFromXmlFile<ConfigFile>(TruckingPlugin.path + "//SpaceTrucking//config.xml");
+                utils.WriteToXmlFile<ConfigFile>(TruckingPlugin.path + "//SpaceTrucking//config.xml", config, false);
+            }
+            else
+            {
+               config = new ConfigFile();
+                utils.WriteToXmlFile<ConfigFile>(TruckingPlugin.path + "//SpaceTrucking//config.xml", config, false);
+            }
+        }
 
         public static Boolean GenerateContract(ulong steamid, long identityid)
         {
             if (getActiveContract(steamid) != null)
             {
-                TruckingPlugin.Log.Info("Existing contract");
+                TruckingPlugin.SendMessage("The Boss", "You already have a contract!", Color.Red, steamid);
+                DialogMessage m = new DialogMessage("Contract fail", "", "You already have a contract!");
+                ModCommunication.SendMessageTo(m, steamid);
                 return false;
             }
             else
@@ -55,8 +103,6 @@ namespace CrunchSpaceTrucking
                 {
 
                     int potentialMax = 1;
-                    rep = rep / 1000;
-                    potentialMax += rep;
                     string type = "easy";
                     int min = 1;
                     Random random = new Random();
@@ -65,6 +111,7 @@ namespace CrunchSpaceTrucking
                     {
                         min += 2;
                         type = "hard";
+                        potentialMax += 2;
                     }
                     else
                     {
@@ -72,6 +119,7 @@ namespace CrunchSpaceTrucking
                         {
                             min += 1;
                             type = "medium";
+                            potentialMax += 1;
                         }
                     }
                     //change to max in config file
@@ -325,20 +373,7 @@ namespace CrunchSpaceTrucking
             return list;
 
         }
-        private TorchSessionManager sessionManager;
-        public override void Init(ITorchBase torch)
-        {
-            base.Init(torch);
-            Log.Info("Loading Space Trucking");
-            path = StoragePath;
 
-            sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
-            if (sessionManager != null)
-            {
-                sessionManager.SessionStateChanged += SessionChanged;
-
-            }
-        }
         public void test(IPlayer p)
         {
             if (p == null)

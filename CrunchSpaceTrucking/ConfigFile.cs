@@ -11,7 +11,7 @@ namespace CrunchSpaceTrucking
         public string DatabaseIP = "localhost";
         public string DatabaseUser = "fred";
         public int DatabasePort = 3306;
-        public string password = "alan";
+        public string DatabasePassword = "alan";
         public int MaxItemsOnContract = 5;
         public int HardContractRep = 5000;
         public int MediumContractRep = 2000;
