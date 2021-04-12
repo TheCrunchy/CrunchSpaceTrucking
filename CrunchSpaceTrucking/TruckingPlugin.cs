@@ -40,25 +40,27 @@ namespace CrunchSpaceTrucking
         public static string path;
         public static bool UsingDatabase = false;
         private static List<MyGps> DeliveryLocations = new List<MyGps>();
-        public static ConfigFile config; 
+        public static ConfigFile config;
 
         public static Boolean GenerateContract(ulong steamid, long identityid)
         {
             if (getActiveContract(steamid) != null)
             {
+                TruckingPlugin.Log.Info("Existing contract");
                 return false;
             }
             else
             {
                 if (reputation.TryGetValue(steamid, out int rep))
                 {
+
                     int potentialMax = 1;
                     rep = rep / 1000;
                     potentialMax += rep;
                     string type = "easy";
                     int min = 1;
                     Random random = new Random();
-                   int chance = random.Next(0,101);
+                    int chance = random.Next(0, 101);
                     if (rep >= config.HardContractRep && chance <= config.HardContractChance)
                     {
                         min += 2;
@@ -77,7 +79,7 @@ namespace CrunchSpaceTrucking
                     {
                         potentialMax = 5;
                     }
-          
+
                     int max = random.Next(min - 1, potentialMax + 1);
                     if (max == 0)
                         max = 1;
@@ -86,7 +88,27 @@ namespace CrunchSpaceTrucking
                     List<ContractItems> items = getRandomContractItem(type, max);
                     MyGps gps = getDeliveryLocation();
                     Contract contract = new Contract(steamid, items, gps.Coords.X, gps.Coords.Y, gps.Coords.Z);
-       
+
+                    Database.addNewContract(steamid, contract);
+                    StringBuilder contractDetails = new StringBuilder();
+                    contractDetails = TruckingPlugin.MakeContractDetails(contract.getItemsInContract());
+
+
+                    gps = contract.GetDeliveryLocation();
+                    MyGpsCollection gpscol = (MyGpsCollection)MyAPIGateway.Session?.GPS;
+
+
+                    gpscol.SendAddGps(identityid, ref gps);
+                    // MyAPIGateway.Session?.GPS.AddGps(Context.Player.IdentityId, gps);
+                    DialogMessage m = new DialogMessage("Contract Details", "Obtain and deliver these items", contractDetails.ToString());
+                    ModCommunication.SendMessageTo(m, steamid);
+                }
+                else
+                {
+                    List<ContractItems> items = getRandomContractItem("easy", 1);
+                    MyGps gps = getDeliveryLocation();
+                    Contract contract = new Contract(steamid, items, gps.Coords.X, gps.Coords.Y, gps.Coords.Z);
+
                     Database.addNewContract(steamid, contract);
                     StringBuilder contractDetails = new StringBuilder();
                     contractDetails = TruckingPlugin.MakeContractDetails(contract.getItemsInContract());
@@ -107,11 +129,11 @@ namespace CrunchSpaceTrucking
         public static Contract getActiveContract(ulong steamid)
         {
 
-                if (TruckingPlugin.activeContracts.TryGetValue(steamid, out Contract contract))
-                {
-                    return contract;
-                }
-            
+            if (TruckingPlugin.activeContracts.TryGetValue(steamid, out Contract contract))
+            {
+                return contract;
+            }
+
             return null;
         }
         public static void RemoveContract(ulong steamid, long identityid)
@@ -161,7 +183,7 @@ namespace CrunchSpaceTrucking
                                 float distance = Vector3.Distance(coords, onlinePlayer.Character.PositionComp.GetPosition());
                                 if (distance <= 300)
                                 {
-                                   
+
                                     List<VRage.ModAPI.IMyEntity> l = new List<VRage.ModAPI.IMyEntity>();
 
                                     BoundingSphereD sphere = new BoundingSphereD(onlinePlayer.Character.PositionComp.GetPosition(), 1000);
@@ -183,15 +205,15 @@ namespace CrunchSpaceTrucking
                                         if (entity is MyCubeGrid grid)
                                         {
                                             List<VRage.Game.ModAPI.IMyInventory> inventories = TakeTheItems.GetInventories(grid);
-                                      
+
                                             if (FacUtils.IsOwnerOrFactionOwned(grid, onlinePlayer.Identity.IdentityId, true) && Vector3.Distance(coords, grid.PositionComp.GetPosition()) <= 300)
                                             {
                                                 if (TakeTheItems.ConsumeComponents(inventories, itemsToRemove, onlinePlayer.Id.SteamId))
                                                 {
                                                     MyBankingSystem.ChangeBalance(onlinePlayer.Identity.IdentityId, pay);
-                                                   Database.RemoveContract(onlinePlayer.Id.SteamId, true, contract, onlinePlayer.Identity.IdentityId);
+                                                    Database.RemoveContract(onlinePlayer.Id.SteamId, true, contract, onlinePlayer.Identity.IdentityId);
                                                     TruckingPlugin.SendMessage("The Boss", "Contract Complete, Payment delivered to bank account.", Color.Purple, onlinePlayer.Id.SteamId);
-               
+
                                                     return;
                                                 }
                                             }
@@ -236,7 +258,6 @@ namespace CrunchSpaceTrucking
         private static List<ContractItems> getItems(List<ContractItems> items, int AmountToPick)
         {
             List<ContractItems> returnList = new List<ContractItems>();
-            int lowestPossible = 1000;
             List<ContractItems> SortedList = items.OrderByDescending(o => o.chance).ToList();
             SortedList.Reverse();
             int amountPicked = 0;
@@ -315,22 +336,22 @@ namespace CrunchSpaceTrucking
             if (sessionManager != null)
             {
                 sessionManager.SessionStateChanged += SessionChanged;
-               
+
             }
         }
-            public void test(IPlayer p)
+        public void test(IPlayer p)
+        {
+            if (p == null)
             {
-                if (p == null)
-                {
-                    return;
-                }
-                
-                MyIdentity id = GetIdentityByNameOrId(p.SteamId.ToString());
-                if (id == null)
-                {
-                    return;
-                }
-                
+                return;
+            }
+
+            MyIdentity id = GetIdentityByNameOrId(p.SteamId.ToString());
+            if (id == null)
+            {
+                return;
+            }
+
             Contract contract = Database.TryGetContract(p.SteamId);
             if (contract != null)
             {
@@ -343,7 +364,7 @@ namespace CrunchSpaceTrucking
 
                 contractDetails.AppendLine("Minimum Payment " + String.Format("{0:n0}", pay) + " SC.");
                 MyGps gps = contract.GetDeliveryLocation();
-  
+
                 List<IMyGps> playerList = new List<IMyGps>();
                 MySession.Static.Gpss.GetGpsList(id.IdentityId, playerList);
                 MyGpsCollection gpscol = (MyGpsCollection)MyAPIGateway.Session?.GPS;
@@ -356,14 +377,14 @@ namespace CrunchSpaceTrucking
                 }
                 gpscol.SendAddGps(id.IdentityId, ref gps);
             }
-            }
+        }
 
         public static int GetMinimumPay(List<ContractItems> items)
         {
             int pay = 0;
             foreach (ContractItems tempitem in items)
             {
-               
+
                 pay += tempitem.AmountToDeliver * tempitem.MinPrice;
             }
             return pay;
@@ -389,7 +410,8 @@ namespace CrunchSpaceTrucking
             switch (type)
             {
                 case "easy":
-                    if (easyItems.TryGetValue(id, out item)){
+                    if (easyItems.TryGetValue(id, out item))
+                    {
                         return item;
                     }
                     else
@@ -477,14 +499,14 @@ namespace CrunchSpaceTrucking
 
         public ContractItems ReadContractItem(String[] split, string difficulty)
         {
-           foreach (String s in split)
+            foreach (String s in split)
             {
                 s.Replace(" ", "");
             }
             ContractItems temp = new ContractItems();
             temp.ContractItemId = split[0].Replace(" ", "");
             temp.ItemType = split[1].Replace(" ", "");
-            temp.SubType = split[2].Replace(" ", ""); 
+            temp.SubType = split[2].Replace(" ", "");
             temp.MinToDeliver = int.Parse(split[3].Replace(" ", ""));
             temp.MaxToDeliver = int.Parse(split[4].Replace(" ", ""));
             temp.MinPrice = int.Parse(split[5].Replace(" ", ""));
@@ -571,7 +593,7 @@ namespace CrunchSpaceTrucking
 
                     for (int i = 1; i < line.Length; i++)
                     {
-                    
+
                         String[] split = line[i].Split(',');
                         TruckingPlugin.AddToEasyContractItems(ReadContractItem(split, "easy"));
                     }

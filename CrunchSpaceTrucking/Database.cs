@@ -18,12 +18,12 @@ namespace CrunchSpaceTrucking
             {
                 TruckingPlugin.Log.Info("Connecting to MySQL...");
                 conn.Open();
-            
+
 
                 string sql = "CREATE DATABASE IF NOT EXISTS spacetrucking";
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
-                
+
                 sql = "CREATE TABLE IF NOT EXISTS spacetrucking.players(playerid BIGINT UNSIGNED PRIMARY KEY, reputation INT NOT NULL, completed INT NOT NULL, failed INT NOT NULL, currentContract CHAR(36))";
                 cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
@@ -36,38 +36,41 @@ namespace CrunchSpaceTrucking
             }
             catch (Exception ex)
             {
+                conn.Clone();
                 TruckingPlugin.Log.Info(ex.ToString());
             }
             conn.Close();
-           TruckingPlugin.Log.Info("Created the tables if it needed to");
+            TruckingPlugin.Log.Info("Created the tables if it needed to");
         }
 
         public static void addNewContract(ulong steamId, Contract contract)
         {
             string connStr = "server=localhost;user=fred;port=3306;password=alan";
-            
+
             MySqlConnection conn = new MySqlConnection(connStr);
             try
             {
                 conn.Open();
-                string sql = "INSERT INTO spacetrucking.players(playerid, reputation, completed, failed, currentContract) VALUES ROW ("+ steamId +",0,0,0,'" + contract.GetContractId() + "') ON DUPLICATE KEY UPDATE currentContract='" + contract.GetContractId()+"'";
+                string sql = "INSERT INTO spacetrucking.players(playerid, reputation, completed, failed, currentContract) VALUES ROW (" + steamId + ",0,0,0,'" + contract.GetContractId() + "') ON DUPLICATE KEY UPDATE currentContract='" + contract.GetContractId() + "'";
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
 
-                sql = "INSERT INTO spacetrucking.contracts(contractId, x, y, z, reputation, completed) VALUES ROW ('" +contract.GetContractId() + "','" + contract.GetDeliveryLocation().Coords.X + "'," + contract.GetDeliveryLocation().Coords.Y + "," + contract.GetDeliveryLocation().Coords.Z + ",50,false)";
+                sql = "INSERT INTO spacetrucking.contracts(contractId, x, y, z, reputation, completed) VALUES ROW ('" + contract.GetContractId() + "','" + contract.GetDeliveryLocation().Coords.X + "'," + contract.GetDeliveryLocation().Coords.Y + "," + contract.GetDeliveryLocation().Coords.Z + ",50,false)";
                 cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
                 foreach (ContractItems item in contract.getItemsInContract())
                 {
-                    sql = "INSERT INTO spacetrucking.contractitems(contractId, itemIdFromConfig, difficulty, amountToDeliver) VALUES ROW ('"+contract.GetContractId()+"','"+item.ContractItemId+"','"+item.difficulty +"',"+item.AmountToDeliver + ")";
+                    sql = "INSERT INTO spacetrucking.contractitems(contractId, itemIdFromConfig, difficulty, amountToDeliver) VALUES ROW ('" + contract.GetContractId() + "','" + item.ContractItemId + "','" + item.difficulty + "'," + item.AmountToDeliver + ")";
                     cmd = new MySqlCommand(sql, conn);
                     cmd.ExecuteNonQuery();
                 }
             }
             catch (Exception ex)
             {
+                conn.Clone();
                 TruckingPlugin.Log.Info(ex.ToString());
-              
+
+
             }
             TruckingPlugin.activeContracts.Add(steamId, contract);
             conn.Close();
@@ -81,7 +84,7 @@ namespace CrunchSpaceTrucking
             try
             {
                 conn.Open();
-                string sql = "select * from spacetrucking.players where playerid="+steamid+"";
+                string sql = "select * from spacetrucking.players where playerid=" + steamid + "";
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 MySqlDataReader reader = cmd.ExecuteReader();
                 Guid contractId = new Guid();
@@ -89,14 +92,22 @@ namespace CrunchSpaceTrucking
                 while (reader.Read())
                 {
                     read++;
-                    if (reader.GetString(4) == null) {
+                    if (!reader.IsDBNull(1))
+                    {
+                        TruckingPlugin.Log.Info("test?");
+                        TruckingPlugin.reputation.Remove(steamid);
+                        TruckingPlugin.reputation.Add(steamid, reader.GetInt32(1));
+                        TruckingPlugin.Log.Info("FUCK?");
+                    }
+                    if (!reader.IsDBNull(4))
+                    {
+                        contractId = Guid.Parse(reader.GetString(4));
+                    }
+                    else
+                    {
                         return null;
                     }
-                    
-                        contractId = Guid.Parse(reader.GetString(4));
-                   
-                    TruckingPlugin.reputation.Remove(steamid);
-                    TruckingPlugin.reputation.Add(steamid, reader.GetInt32(1));
+
                 }
                 if (read == 0)
                 {
@@ -107,16 +118,28 @@ namespace CrunchSpaceTrucking
                 reader.Close();
                 double x = 0, y = 0, z = 0;
                 int reputation = 0;
-               sql = "select * from spacetrucking.contracts where contractId='" + contractId + "'";
+                sql = "select * from spacetrucking.contracts where contractId='" + contractId + "'";
                 cmd = new MySqlCommand(sql, conn);
-               reader = cmd.ExecuteReader();
+                reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
                     read++;
-                    x = reader.GetDouble(1);
-                    y = reader.GetDouble(2);
-                    z = reader.GetDouble(3);
-                    reputation = reader.GetInt32(4);
+                    if (!reader.IsDBNull(1))
+                    {
+                        x = reader.GetDouble(1);
+                    }
+                    if (!reader.IsDBNull(2))
+                    {
+                        y = reader.GetDouble(2);
+                    }
+                    if (!reader.IsDBNull(3))
+                    {
+                        z = reader.GetDouble(3);
+                    }
+                    if (!reader.IsDBNull(4))
+                    {
+                        reputation = reader.GetInt32(4);
+                    }
                 }
                 if (read == 0)
                 {
@@ -130,14 +153,17 @@ namespace CrunchSpaceTrucking
                 reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-       
-                    ContractItems item = new ContractItems();
 
-                    if (TruckingPlugin.getItemFromLists(reader.GetString(2), reader.GetString(3)) != null)
+                    ContractItems item = new ContractItems();
+                    if (!reader.IsDBNull(2) && !reader.IsDBNull(3) && !reader.IsDBNull(4))
                     {
-                     item = (TruckingPlugin.getItemFromLists(reader.GetString(2), reader.GetString(3)));
-                        item.SetAmountToDeliver(reader.GetInt32(4));
-                        items.Add(item);
+
+                        if (TruckingPlugin.getItemFromLists(reader.GetString(2), reader.GetString(3)) != null)
+                        {
+                            item = (TruckingPlugin.getItemFromLists(reader.GetString(2), reader.GetString(3)));
+                            item.SetAmountToDeliver(reader.GetInt32(4));
+                            items.Add(item);
+                        }
                     }
                 }
                 Contract contract = new Contract(contractId, steamid, items, x, y, z, reputation);
@@ -148,6 +174,7 @@ namespace CrunchSpaceTrucking
             }
             catch (Exception ex)
             {
+                conn.Clone();
                 TruckingPlugin.Log.Info(ex.ToString());
             }
             conn.Close();
@@ -168,7 +195,10 @@ namespace CrunchSpaceTrucking
                 while (reader.Read())
                 {
                     read++;
-                    contractId = Guid.Parse(reader.GetString(4));
+                    if (!reader.IsDBNull(4))
+                    {
+                        contractId = Guid.Parse(reader.GetString(4));
+                    }
                 }
                 if (read == 0)
                 {
@@ -182,11 +212,11 @@ namespace CrunchSpaceTrucking
                     if (TruckingPlugin.reputation.TryGetValue(steamid, out int rep))
                     {
                         TruckingPlugin.reputation.Remove(steamid);
-                          TruckingPlugin.reputation.Add(steamid, contract.GetReputation() + rep);
+                        TruckingPlugin.reputation.Add(steamid, contract.GetReputation() + rep);
                     }
                     TruckingPlugin.reputation.Add(steamid, contract.GetReputation());
-                   
-                   
+
+
                 }
                 else
                 {
@@ -196,7 +226,10 @@ namespace CrunchSpaceTrucking
                         TruckingPlugin.reputation.Remove(steamid);
                         TruckingPlugin.reputation.Add(steamid, rep - contract.GetReputation());
                     }
-                    TruckingPlugin.reputation.Add(steamid,  contract.GetReputation() * -1);
+                    else
+                    {
+                        TruckingPlugin.reputation.Add(steamid, contract.GetReputation() * -1);
+                    }
                 }
                 cmd = new MySqlCommand(sql, conn);
                 TruckingPlugin.RemoveContract(steamid, identityid);
@@ -204,6 +237,7 @@ namespace CrunchSpaceTrucking
             }
             catch (Exception ex)
             {
+                conn.Clone();
                 TruckingPlugin.Log.Info(ex.ToString());
             }
             conn.Close();
@@ -211,6 +245,6 @@ namespace CrunchSpaceTrucking
         }
 
     }
-  
+
 
 }
