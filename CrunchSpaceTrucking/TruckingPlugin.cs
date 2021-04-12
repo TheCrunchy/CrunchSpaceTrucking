@@ -33,10 +33,62 @@ namespace CrunchSpaceTrucking
         private static Dictionary<String, ContractItems> easyItems = new Dictionary<string, ContractItems>();
         private static Dictionary<String, ContractItems> mediumItems = new Dictionary<string, ContractItems>();
         private static Dictionary<String, ContractItems> hardItems = new Dictionary<string, ContractItems>();
+        public static Dictionary<ulong, int> reputation = new Dictionary<ulong, int>();
         public static Logger Log = LogManager.GetCurrentClassLogger();
         public static string path;
         public static bool UsingDatabase = false;
         private static List<MyGps> DeliveryLocations = new List<MyGps>();
+        public static ConfigFile config; 
+
+        public static Boolean GenerateContract(ulong steamid, long identityid)
+        {
+            if (getActiveContract(steamid) != null)
+            {
+                return false;
+            }
+            else
+            {
+                if (reputation.TryGetValue(steamid, out int rep))
+                {
+                    int potentialMax = 1;
+                    rep = rep / 1000;
+                    potentialMax += rep;
+                    string type = "easy";
+                    int min = 1;
+                    Random random = new Random();
+                   int chance = random.Next(0,101);
+                    if (rep >= config.HardContractRep && chance <= config.HardContractChance)
+                    {
+                        min += 2;
+                        type = "hard";
+                    }
+                    else
+                    {
+                        if (rep >= config.MediumContractRep && chance <= config.MediumContractChance)
+                        {
+                            min += 1;
+                            type = "medium";
+                        }
+                    }
+                    //change to max in config file
+                    if (potentialMax > 5)
+                    {
+                        potentialMax = 5;
+                    }
+          
+                    int max = random.Next(min - 1, potentialMax + 1);
+                    if (max == 0)
+                        max = 1;
+
+
+                    List<ContractItems> items = getRandomContractItem(type, max);
+                    MyGps gps = getDeliveryLocation();
+                    Contract contract = new Contract(steamid, items, gps.Coords.X, gps.Coords.Y, gps.Coords.Z);
+                    
+                }
+                return true;
+            }
+        }
         public static Contract getActiveContract(ulong steamid)
         {
 
@@ -75,7 +127,7 @@ namespace CrunchSpaceTrucking
             MyMultiplayerBase.SendScriptedChatMessage(ref scriptedChatMsg2);
         }
         private int tick = 0;
-        public override async void Update()
+        public override void Update()
         {
             try
             {
@@ -195,7 +247,10 @@ namespace CrunchSpaceTrucking
 
             return returnList;
         }
-        public static List<ContractItems> getRandomContractItem(string type)
+
+        //i really hate this code, i should make it one method
+        //wrote this at like 4am
+        public static List<ContractItems> getRandomContractItem(string type, int amount)
         {
             Random random = new Random();
             int index;
@@ -212,21 +267,21 @@ namespace CrunchSpaceTrucking
                     {
                         temp.Add(fuck);
                     }
-                    list = getItems(temp, 1);
+                    list = getItems(temp, amount);
                     break;
                 case "medium":
                     foreach (ContractItems fuck in mediumItems.Values)
                     {
                         temp.Add(fuck);
                     }
-                    list = getItems(temp, 2);
+                    list = getItems(temp, amount);
                     break;
                 case "hard":
-                    foreach (ContractItems fuck in mediumItems.Values)
+                    foreach (ContractItems fuck in hardItems.Values)
                     {
                         temp.Add(fuck);
                     }
-                    list = getItems(temp, 3);
+                    list = getItems(temp, amount);
                     break;
                 default:
                     return null;

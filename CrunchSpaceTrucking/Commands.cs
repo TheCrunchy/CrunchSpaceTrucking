@@ -222,29 +222,23 @@ namespace CrunchSpaceTrucking
                 }
 
                 StringBuilder contractDetails = new StringBuilder();
-                List<ContractItems> items = new List<ContractItems>();
-                items = TruckingPlugin.getRandomContractItem(type.ToLower());
-                int pay = TruckingPlugin.GetMinimumPay(items);
-                contractDetails = TruckingPlugin.MakeContractDetails(items);
-
-                MyGps gps = TruckingPlugin.getDeliveryLocation();
-         
-                List<IMyGps> playerList = new List<IMyGps>();
-                MySession.Static.Gpss.GetGpsList(Context.Player.IdentityId, playerList);
-                MyGpsCollection gpscol = (MyGpsCollection)MyAPIGateway.Session?.GPS;
-                foreach (IMyGps gps2 in playerList)
+     
+                if (TruckingPlugin.GenerateContract(Context.Player.SteamUserId, Context.Player.IdentityId))
                 {
-                    if (gps2.Name.Contains("Delivery Location, bring hauling vehicle within 300m"))
-                    {
-                        MyAPIGateway.Session?.GPS.RemoveGps(Context.Player.Identity.IdentityId, gps2);
-                    }
+                    Contract contract = TruckingPlugin.getActiveContract(Context.Player.SteamUserId);
+                    contractDetails = TruckingPlugin.MakeContractDetails(contract.getItemsInContract());
+
+
+                    MyGps gps = contract.GetDeliveryLocation();
+                    MyGpsCollection gpscol = (MyGpsCollection)MyAPIGateway.Session?.GPS;
+
+
+                    gpscol.SendAddGps(Context.Player.Identity.IdentityId, ref gps);
+                    // MyAPIGateway.Session?.GPS.AddGps(Context.Player.IdentityId, gps);
+                    DialogMessage m = new DialogMessage("Contract Details", "Obtain and deliver these items", contractDetails.ToString());
+                    ModCommunication.SendMessageTo(m, Context.Player.SteamUserId);
                 }
-                Contract contract = new Contract(Context.Player.SteamUserId, items, gps.Coords.X, gps.Coords.Y, gps.Coords.Z, 50);
-                AddContractToStorage(Context.Player.SteamUserId, contract);
-                gpscol.SendAddGps(Context.Player.Identity.IdentityId, ref gps);
-                // MyAPIGateway.Session?.GPS.AddGps(Context.Player.IdentityId, gps);
-                DialogMessage m = new DialogMessage("Contract Details", "Obtain and deliver these items", contractDetails.ToString());
-                ModCommunication.SendMessageTo(m, Context.Player.SteamUserId);
+              
             }
 
         }

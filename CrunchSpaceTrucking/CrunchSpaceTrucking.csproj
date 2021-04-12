@@ -120,6 +120,7 @@
   <ItemGroup>
     <Compile Include="Commands.cs" />
     <Compile Include="Database.cs" />
+    <Compile Include="Properties\ConfigFile.cs" />
     <Compile Include="Properties\FacUtils.cs" />
     <Compile Include="TakeTheItems.cs" />
     <Compile Include="TruckingPlugin.cs" />

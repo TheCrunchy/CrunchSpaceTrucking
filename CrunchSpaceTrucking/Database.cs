@@ -87,6 +87,8 @@ namespace CrunchSpaceTrucking
                 {
                     read++;
                    contractId = Guid.Parse(reader.GetString(4));
+                    TruckingPlugin.reputation.Remove(steamid);
+                    TruckingPlugin.reputation.Add(steamid, reader.GetInt32(1));
                 }
                 if (read == 0)
                 {
@@ -130,7 +132,7 @@ namespace CrunchSpaceTrucking
                         items.Add(item);
                     }
                 }
-                Contract contract = new Contract(steamid, items, x, y, z, reputation);
+                Contract contract = new Contract(contractId, steamid, items, x, y, z, reputation);
                 reader.Close();
                 conn.Close();
                 TruckingPlugin.Log.Info("Loading data for whoever this is " + steamid);
@@ -169,10 +171,24 @@ namespace CrunchSpaceTrucking
                 if (completed)
                 {
                     sql = "UPDATE spacetrucking.players SET currentContract = '', completed = completed + 1, reputation = reputation + " + contract.GetReputation() + " where playerId =" + steamid;
+                    if (TruckingPlugin.reputation.TryGetValue(steamid, out int rep))
+                    {
+                        TruckingPlugin.reputation.Remove(steamid);
+                          TruckingPlugin.reputation.Add(steamid, contract.GetReputation() + rep);
+                    }
+                    TruckingPlugin.reputation.Add(steamid, contract.GetReputation());
+                   
+                   
                 }
                 else
                 {
                     sql = "UPDATE spacetrucking.players SET currentContract = '', failed = failed + 1, reputation = reputation - " + (contract.GetReputation() * 2) + " where playerId =" + steamid;
+                    if (TruckingPlugin.reputation.TryGetValue(steamid, out int rep))
+                    {
+                        TruckingPlugin.reputation.Remove(steamid);
+                        TruckingPlugin.reputation.Add(steamid, rep - contract.GetReputation());
+                    }
+                    TruckingPlugin.reputation.Add(steamid,  contract.GetReputation() * -1);
                 }
                 cmd = new MySqlCommand(sql, conn);
                 TruckingPlugin.RemoveContract(steamid, identityid);

@@ -17,7 +17,15 @@ namespace CrunchSpaceTrucking
         private double GpsY;
         private double GpsZ;
         private int Reputation;
-
+        public Contract(ulong SteamId, List<ContractItems> newItems, double x, double y, double z)
+        {
+            this.PlayerSteamId = SteamId;
+            this.items = newItems;
+            this.GpsX = x;
+            this.GpsY = y;
+            this.GpsZ = z;
+            this.ContractId = System.Guid.NewGuid();
+        }
         public Contract(ulong SteamId, List<ContractItems> newItems, double x, double y, double z, int reputation)
         {
             this.Reputation = reputation;
