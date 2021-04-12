@@ -45,6 +45,7 @@ namespace CrunchSpaceTrucking
         public static void addNewContract(ulong steamId, Contract contract)
         {
             string connStr = "server=localhost;user=fred;port=3306;password=alan";
+            
             MySqlConnection conn = new MySqlConnection(connStr);
             try
             {
@@ -66,7 +67,9 @@ namespace CrunchSpaceTrucking
             catch (Exception ex)
             {
                 TruckingPlugin.Log.Info(ex.ToString());
+              
             }
+            TruckingPlugin.activeContracts.Add(steamId, contract);
             conn.Close();
             TruckingPlugin.Log.Info("Inserted a new contract for whoever this is " + steamId);
         }
@@ -86,7 +89,12 @@ namespace CrunchSpaceTrucking
                 while (reader.Read())
                 {
                     read++;
-                   contractId = Guid.Parse(reader.GetString(4));
+                    if (reader.GetString(4) == null) {
+                        return null;
+                    }
+                    
+                        contractId = Guid.Parse(reader.GetString(4));
+                   
                     TruckingPlugin.reputation.Remove(steamid);
                     TruckingPlugin.reputation.Add(steamid, reader.GetInt32(1));
                 }
@@ -170,7 +178,7 @@ namespace CrunchSpaceTrucking
                 reader.Close();
                 if (completed)
                 {
-                    sql = "UPDATE spacetrucking.players SET currentContract = '', completed = completed + 1, reputation = reputation + " + contract.GetReputation() + " where playerId =" + steamid;
+                    sql = "UPDATE spacetrucking.players SET currentContract = NULL, completed = completed + 1, reputation = reputation + " + contract.GetReputation() + " where playerId =" + steamid;
                     if (TruckingPlugin.reputation.TryGetValue(steamid, out int rep))
                     {
                         TruckingPlugin.reputation.Remove(steamid);
@@ -182,7 +190,7 @@ namespace CrunchSpaceTrucking
                 }
                 else
                 {
-                    sql = "UPDATE spacetrucking.players SET currentContract = '', failed = failed + 1, reputation = reputation - " + (contract.GetReputation() * 2) + " where playerId =" + steamid;
+                    sql = "UPDATE spacetrucking.players SET currentContract = NULL, failed = failed + 1, reputation = reputation - " + (contract.GetReputation() * 2) + " where playerId =" + steamid;
                     if (TruckingPlugin.reputation.TryGetValue(steamid, out int rep))
                     {
                         TruckingPlugin.reputation.Remove(steamid);

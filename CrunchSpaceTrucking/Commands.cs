@@ -205,8 +205,8 @@ namespace CrunchSpaceTrucking
             }
         }
         [Command("contract take", "take a contract")]
-        [Permission(MyPromoteLevel.None)]
-        public void TakeContract(string type)
+        [Permission(MyPromoteLevel.Admin)]
+        public void TakeContract()
         {
 
             if (TruckingPlugin.getActiveContract(Context.Player.SteamUserId) != null)
@@ -215,29 +215,7 @@ namespace CrunchSpaceTrucking
             }
             else
             {
-                if (!type.ToLower().Equals("easy") && !type.ToLower().Equals("medium") && !type.ToLower().Equals("hard"))
-                {
-                    Context.Respond("Incorrect syntax");
-                    return;
-                }
-
-                StringBuilder contractDetails = new StringBuilder();
-     
-                if (TruckingPlugin.GenerateContract(Context.Player.SteamUserId, Context.Player.IdentityId))
-                {
-                    Contract contract = TruckingPlugin.getActiveContract(Context.Player.SteamUserId);
-                    contractDetails = TruckingPlugin.MakeContractDetails(contract.getItemsInContract());
-
-
-                    MyGps gps = contract.GetDeliveryLocation();
-                    MyGpsCollection gpscol = (MyGpsCollection)MyAPIGateway.Session?.GPS;
-
-
-                    gpscol.SendAddGps(Context.Player.Identity.IdentityId, ref gps);
-                    // MyAPIGateway.Session?.GPS.AddGps(Context.Player.IdentityId, gps);
-                    DialogMessage m = new DialogMessage("Contract Details", "Obtain and deliver these items", contractDetails.ToString());
-                    ModCommunication.SendMessageTo(m, Context.Player.SteamUserId);
-                }
+                TruckingPlugin.GenerateContract(Context.Player.SteamUserId, Context.Player.IdentityId);
               
             }
 

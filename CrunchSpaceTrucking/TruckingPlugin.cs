@@ -25,6 +25,8 @@ using VRage.Game.ModAPI.Ingame;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.GameSystems.BankingAndCurrency;
+using Torch.Mod.Messages;
+using Torch.Mod;
 
 namespace CrunchSpaceTrucking
 {
@@ -84,7 +86,20 @@ namespace CrunchSpaceTrucking
                     List<ContractItems> items = getRandomContractItem(type, max);
                     MyGps gps = getDeliveryLocation();
                     Contract contract = new Contract(steamid, items, gps.Coords.X, gps.Coords.Y, gps.Coords.Z);
-                    
+       
+                    Database.addNewContract(steamid, contract);
+                    StringBuilder contractDetails = new StringBuilder();
+                    contractDetails = TruckingPlugin.MakeContractDetails(contract.getItemsInContract());
+
+
+                    gps = contract.GetDeliveryLocation();
+                    MyGpsCollection gpscol = (MyGpsCollection)MyAPIGateway.Session?.GPS;
+
+
+                    gpscol.SendAddGps(identityid, ref gps);
+                    // MyAPIGateway.Session?.GPS.AddGps(Context.Player.IdentityId, gps);
+                    DialogMessage m = new DialogMessage("Contract Details", "Obtain and deliver these items", contractDetails.ToString());
+                    ModCommunication.SendMessageTo(m, steamid);
                 }
                 return true;
             }
