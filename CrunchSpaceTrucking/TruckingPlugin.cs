@@ -93,7 +93,7 @@ namespace CrunchSpaceTrucking
             if (getActiveContract(steamid) != null)
             {
                 TruckingPlugin.SendMessage("The Boss", "You already have a contract!", Color.Red, steamid);
-                DialogMessage m = new DialogMessage("Contract fail", "", "You already have a contract!");
+                DialogMessage m = new DialogMessage("Contract fail", "", "You already have a contract, to quit use !contract quit");
                 ModCommunication.SendMessageTo(m, steamid);
                 return false;
             }

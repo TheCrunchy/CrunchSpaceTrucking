@@ -143,7 +143,7 @@ namespace CrunchSpaceTrucking
 
 
         [Command("contract deliver", "deliver a contract")]
-        [Permission(MyPromoteLevel.None)]
+        [Permission(MyPromoteLevel.Admin)]
         public void DeliverContract()
         {
             Contract contract = TruckingPlugin.getActiveContract(Context.Player.SteamUserId);
