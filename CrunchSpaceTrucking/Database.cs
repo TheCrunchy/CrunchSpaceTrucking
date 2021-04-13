@@ -98,9 +98,10 @@ namespace CrunchSpaceTrucking
                 cmd = new MySqlCommand(sql, conn);
                 reader = cmd.ExecuteReader();
                 Guid contractId = new Guid();
-
+                int read = 0;
                 while (reader.Read())
                 {
+                    read++;
                     if (reader[4] != null)
                     {
                         contractId = reader.GetGuid(4);
@@ -112,7 +113,12 @@ namespace CrunchSpaceTrucking
                         return null;
                     }
                 }
-                        
+                if (read == 0)
+                {
+                    conn.Close();
+                    TruckingPlugin.Log.Info("No contract to load " + steamid);
+                    return null;
+                }
                 reader.Close();
                 double x = 0, y = 0, z = 0;
                 int reputation = 0;
@@ -197,8 +203,11 @@ namespace CrunchSpaceTrucking
                         TruckingPlugin.reputation.Remove(steamid);
                         TruckingPlugin.reputation.Add(steamid, contract.GetReputation() + rep);
                     }
-                    TruckingPlugin.reputation.Add(steamid, contract.GetReputation());
-
+                    else
+                    {
+                        TruckingPlugin.reputation.Remove(steamid);
+                        TruckingPlugin.reputation.Add(steamid, contract.GetReputation());
+                    }
 
                 }
                 else
@@ -211,6 +220,7 @@ namespace CrunchSpaceTrucking
                     }
                     else
                     {
+                        TruckingPlugin.reputation.Remove(steamid);
                         TruckingPlugin.reputation.Add(steamid, contract.GetReputation() * -1);
                     }
                 }

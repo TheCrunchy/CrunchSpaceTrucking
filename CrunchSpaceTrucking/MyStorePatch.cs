@@ -46,7 +46,7 @@ namespace CrunchSpaceTrucking
             {
                 
                 MyCubeGrid grid = __instance.CubeGrid;
-                if (FacUtils.GetFactionTag(FacUtils.GetOwner(grid)) != null && FacUtils.GetFactionTag(FacUtils.GetOwner(grid)).Length > 3){
+                if (FacUtils.GetFactionTag(FacUtils.GetOwner(grid)) != null && FacUtils.GetFactionTag(FacUtils.GetOwner(grid)).Length > 3 && TruckingPlugin.config.NPCGridContracts){
                     faction = true;
                 }
                 if (!grid.Editable || !grid.DestructibleBlocks)

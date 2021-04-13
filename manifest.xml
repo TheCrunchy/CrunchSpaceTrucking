@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <PluginManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <Name>CrunchSpaceTrucking</Name>
+  <Name>Crunch Space Trucking</Name>
   <Guid>5dad17b3-07ae-4c21-ad2a-a62b7ab45f29</Guid>
-  <Version>v1.0</Version>
+  <Version>v1.2</Version>
 </PluginManifest>

@@ -119,10 +119,11 @@ namespace CrunchSpaceTrucking
         [Permission(MyPromoteLevel.None)]
         public void ContractDetails()
         {
-            Contract contract = TruckingPlugin.getActiveContract(Context.Player.SteamUserId);
+       
             StringBuilder contractDetails = new StringBuilder();
-            if (contract != null)
+            if (TruckingPlugin.getActiveContract(Context.Player.SteamUserId) != null)
             {
+                Contract contract = TruckingPlugin.getActiveContract(Context.Player.SteamUserId);
                 int pay = TruckingPlugin.GetMinimumPay(contract.getItemsInContract());
                 contractDetails = TruckingPlugin.MakeContractDetails(contract.getItemsInContract());
                 MyGps gps = TruckingPlugin.getDeliveryLocation();

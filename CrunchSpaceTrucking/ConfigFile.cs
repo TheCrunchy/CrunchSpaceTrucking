@@ -18,5 +18,7 @@ namespace CrunchSpaceTrucking
 
         public double HardContractChance = 30;
         public double MediumContractChance = 60;
+        public Boolean NPCGridContracts = false;
+     //   public Boolean DoBonusRewards = false;
     }
 }

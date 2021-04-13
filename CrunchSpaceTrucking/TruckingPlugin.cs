@@ -35,6 +35,7 @@ namespace CrunchSpaceTrucking
         private static Dictionary<String, ContractItems> easyItems = new Dictionary<string, ContractItems>();
         private static Dictionary<String, ContractItems> mediumItems = new Dictionary<string, ContractItems>();
         private static Dictionary<String, ContractItems> hardItems = new Dictionary<string, ContractItems>();
+        private static List<ContractItems> bonusRewards = new List<ContractItems>();
         public static Dictionary<ulong, int> reputation = new Dictionary<ulong, int>();
         public static Logger Log = LogManager.GetCurrentClassLogger();
         public static string path;
@@ -51,10 +52,7 @@ namespace CrunchSpaceTrucking
             SetupConfig();
             sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (sessionManager != null)
-            {
                 sessionManager.SessionStateChanged += SessionChanged;
-
-            }
         }
 
         public static ConfigFile LoadConfig()
@@ -222,8 +220,9 @@ namespace CrunchSpaceTrucking
                     foreach (MyPlayer onlinePlayer in MySession.Static.Players.GetOnlinePlayers())
                     {
                         MyPlayer playerOnline = onlinePlayer;
-                        if (onlinePlayer.Character != null)
+                        if (onlinePlayer.Character != null && onlinePlayer?.Controller.ControlledEntity is MyCockpit controller)
                         {
+                            MyCubeGrid grid = controller.CubeGrid;
                             if (TruckingPlugin.getActiveContract(onlinePlayer.Id.SteamId) != null)
                             {
                                 Contract contract = TruckingPlugin.getActiveContract(onlinePlayer.Id.SteamId);
@@ -248,23 +247,31 @@ namespace CrunchSpaceTrucking
                                         }
                                     }
 
-                                    foreach (IMyEntity entity in l)
+
+                                    List<VRage.Game.ModAPI.IMyInventory> inventories = TakeTheItems.GetInventories(grid);
+
+                                    if (FacUtils.IsOwnerOrFactionOwned(grid, onlinePlayer.Identity.IdentityId, true) && Vector3.Distance(coords, grid.PositionComp.GetPosition()) <= 300)
                                     {
-                                        if (entity is MyCubeGrid grid)
+                                        if (TakeTheItems.ConsumeComponents(inventories, itemsToRemove, onlinePlayer.Id.SteamId))
                                         {
-                                            List<VRage.Game.ModAPI.IMyInventory> inventories = TakeTheItems.GetInventories(grid);
-
-                                            if (FacUtils.IsOwnerOrFactionOwned(grid, onlinePlayer.Identity.IdentityId, true) && Vector3.Distance(coords, grid.PositionComp.GetPosition()) <= 300)
-                                            {
-                                                if (TakeTheItems.ConsumeComponents(inventories, itemsToRemove, onlinePlayer.Id.SteamId))
-                                                {
-                                                    MyBankingSystem.ChangeBalance(onlinePlayer.Identity.IdentityId, pay);
-                                                    Database.RemoveContract(onlinePlayer.Id.SteamId, true, contract, onlinePlayer.Identity.IdentityId);
-                                                    TruckingPlugin.SendMessage("The Boss", "Contract Complete, Payment delivered to bank account.", Color.Purple, onlinePlayer.Id.SteamId);
-
-                                                    return;
-                                                }
-                                            }
+                                            MyBankingSystem.ChangeBalance(onlinePlayer.Identity.IdentityId, pay);
+                                            Database.RemoveContract(onlinePlayer.Id.SteamId, true, contract, onlinePlayer.Identity.IdentityId);
+                                            TruckingPlugin.SendMessage("The Boss", "Contract Complete, Payment delivered to bank account.", Color.Purple, onlinePlayer.Id.SteamId);
+                                            //if (TruckingPlugin.config.DoBonusRewards)
+                                            //{
+                                            //    List<ContractItems> SortedList = bonusRewards.OrderByDescending(o => o.chance).ToList();
+                                            //    Random random = new Random();
+                                            //    foreach (ContractItems item in SortedList)
+                                            //    {
+         
+                                            //        int chance = random.Next(101);
+                                            //        if (chance <= item.chance)
+                                            //        {
+                                                        
+                                            //        }
+                                            //    }
+                                            //}
+                                            return;
                                         }
                                     }
                                 }
@@ -697,7 +704,27 @@ namespace CrunchSpaceTrucking
                         File.WriteAllText(TruckingPlugin.path + "//SpaceTrucking//hard.csv", hard.ToString());
                     }
                 }
+                if (System.IO.File.Exists(TruckingPlugin.path + "//SpaceTrucking//bonusRewards.csv"))
+                {
+                    String[] line = File.ReadAllLines(TruckingPlugin.path + "//SpaceTrucking//bonusRewards.csv");
 
+                    for (int i = 1; i < line.Length; i++)
+                    {
+
+                        String[] split = line[i].Split(',');
+
+                    }
+                }
+                else
+                {
+                    if (!System.IO.File.Exists(TruckingPlugin.path + "//SpaceTrucking//bonusRewards.csv"))
+                    {
+                        StringBuilder hard = new StringBuilder();
+                        hard.AppendLine("TypeId,SubtypeId,minAmount,maxAmount,percentageChance");
+                        hard.AppendLine("Ingot,Iron,1,10,20");
+                        File.WriteAllText(TruckingPlugin.path + "//SpaceTrucking//bonusRewards.csv", hard.ToString());
+                    }
+                }
             }
 
 
