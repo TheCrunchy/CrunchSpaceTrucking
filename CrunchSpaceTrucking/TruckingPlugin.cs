@@ -81,7 +81,7 @@ namespace CrunchSpaceTrucking
             }
             else
             {
-               config = new ConfigFile();
+                config = new ConfigFile();
                 utils.WriteToXmlFile<ConfigFile>(TruckingPlugin.path + "//SpaceTrucking//config.xml", config, false);
             }
         }
