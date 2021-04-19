@@ -97,6 +97,7 @@ namespace CrunchSpaceTrucking
             }
             else
             {
+                //this code is awful and i want to redo it, probably throwing the generation in a new method and changing this reputation check to just change the amount
                 if (reputation.TryGetValue(steamid, out int rep))
                 {
 
@@ -214,6 +215,7 @@ namespace CrunchSpaceTrucking
         {
             try
             {
+                //slow this shit down so it doesnt lag out console, 32 is fine but i dont think it needs to check that often
                 ++this.tick;
                 if (this.tick % 128 == 0)
                 {
@@ -238,6 +240,8 @@ namespace CrunchSpaceTrucking
 
                                     Dictionary<MyDefinitionId, int> itemsToRemove = new Dictionary<MyDefinitionId, int>();
                                     int pay = 0;
+                                    //calculate the pay since we only show the player the minimum they can get, this could be removed if the pay is made part of the contract
+                                    //when its generated and stored in the db, reputation when completed could give a bonus percent
                                     foreach (ContractItems item in contract.getItemsInContract())
                                     {
                                         if (MyDefinitionId.TryParse("MyObjectBuilder_" + item.ItemType, item.SubType, out MyDefinitionId id))
@@ -317,6 +321,7 @@ namespace CrunchSpaceTrucking
             SortedList.Reverse();
             int amountPicked = 0;
 
+            //sort the list by descending then reverse it so we check the lowest chances first
             Random random = new Random();
             foreach (ContractItems item in SortedList)
             {
@@ -328,6 +333,7 @@ namespace CrunchSpaceTrucking
                     amountPicked++;
                 }
             }
+            //check theres at least one item on the contract, if not pick one at complete random
             if (returnList.Count == 0)
             {
                 int index = random.Next(SortedList.Count);
@@ -344,12 +350,8 @@ namespace CrunchSpaceTrucking
         public static List<ContractItems> getRandomContractItem(string type, int amount)
         {
             Random random = new Random();
-            int index;
-
             List<ContractItems> list = new List<ContractItems>();
             List<ContractItems> temp = new List<ContractItems>();
-            int maxAmount = 1;
-            int added = 0;
             int chance = random.Next(101);
             switch (type)
             {
@@ -383,6 +385,9 @@ namespace CrunchSpaceTrucking
 
         public void test(IPlayer p)
         {
+
+
+        //load the contracts on login
             if (p == null)
             {
                 return;

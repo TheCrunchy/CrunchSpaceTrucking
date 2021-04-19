@@ -31,6 +31,8 @@ namespace CrunchSpaceTrucking
                 sql = "CREATE TABLE IF NOT EXISTS spacetrucking.contracts(contractId CHAR(36) PRIMARY KEY, x DOUBLE NOT NULL, y DOUBLE NOT NULL, z DOUBLE NOT NULL, reputation INT NOT NULL, completed BOOLEAN NOT NULL)";
                 cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
+
+                //contract id here should be a foreign key but that didnt work in testing so i got rid of it 
                 sql = "CREATE TABLE IF NOT EXISTS spacetrucking.contractItems(id INT AUTO_INCREMENT PRIMARY KEY, contractId CHAR(36) NOT NULL, itemIdFromConfig VARCHAR(100) NOT NULL, difficulty VARCHAR(15) NOT NULL,  amountToDeliver INT NOT NULL)";
                 cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
@@ -51,14 +53,19 @@ namespace CrunchSpaceTrucking
             MySqlConnection conn = new MySqlConnection(connStr);
             try
             {
+                //Update the players table to add a new player and contract, if the player exists in table, update the contract id field
+                //currently a player can only ever have one active contract, but that would be fairly easy to change
+                //throw the player id into the contracts table then load all of those where completed is false
                 conn.Open();
                 string sql = "INSERT INTO spacetrucking.players(playerid, reputation, completed, failed, currentContract) VALUES ROW (" + steamId + ",0,0,0,'" + contract.GetContractId() + "') ON DUPLICATE KEY UPDATE currentContract='" + contract.GetContractId() + "'";
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
 
+                //insert the main contract
                 sql = "INSERT INTO spacetrucking.contracts(contractId, x, y, z, reputation, completed) VALUES ROW ('" + contract.GetContractId() + "','" + contract.GetDeliveryLocation().Coords.X + "'," + contract.GetDeliveryLocation().Coords.Y + "," + contract.GetDeliveryLocation().Coords.Z + ",50,false)";
                 cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
+                //insert all the items on the contract into the contractItems table
                 foreach (ContractItems item in contract.getItemsInContract())
                 {
                     sql = "INSERT INTO spacetrucking.contractitems(contractId, itemIdFromConfig, difficulty, amountToDeliver) VALUES ROW ('" + contract.GetContractId() + "','" + item.ContractItemId + "','" + item.difficulty + "'," + item.AmountToDeliver + ")";
@@ -87,6 +94,7 @@ namespace CrunchSpaceTrucking
                 string sql = "select reputation from spacetrucking.players where playerid=" + steamid + "";
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 MySqlDataReader reader = cmd.ExecuteReader();
+                //load their reputation first
                 while (reader.Read())
                 {
                     TruckingPlugin.reputation.Remove(steamid);
@@ -101,6 +109,7 @@ namespace CrunchSpaceTrucking
                 int read = 0;
                 while (reader.Read())
                 {
+                    //position 4 is the contract id 
                     read++;
                     if (reader[4] != null)
                     {
@@ -113,6 +122,7 @@ namespace CrunchSpaceTrucking
                         return null;
                     }
                 }
+                //additional check to return if there is no contract, probably isnt necessary here as the one above catches it
                 if (read == 0)
                 {
                     conn.Close();
@@ -123,12 +133,11 @@ namespace CrunchSpaceTrucking
                 double x = 0, y = 0, z = 0;
                 int reputation = 0;
                 sql = "select * from spacetrucking.contracts where contractId='" + contractId + "'";
+                //load the main contract to get its position and reputation gain/reduction
                 cmd = new MySqlCommand(sql, conn);
                 reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-      
-
                     x = reader.GetDouble(1);
                     y = reader.GetDouble(2);
                     z = reader.GetDouble(3);
@@ -138,7 +147,7 @@ namespace CrunchSpaceTrucking
 
                 List<ContractItems> items = new List<ContractItems>();
                 reader.Close();
-
+                //now load all the items on the contract
                 sql = "select * from spacetrucking.contractItems where contractId='" + contractId + "'";
                 cmd = new MySqlCommand(sql, conn);
                 reader = cmd.ExecuteReader();
@@ -176,6 +185,7 @@ namespace CrunchSpaceTrucking
             try
             {
                 conn.Open();
+                //I dont remember why i load this, the contract ID is already in the contract object, so this probably isnt necessary unless the contract id is null
                 string sql = "select * from spacetrucking.players where playerid=" + steamid;
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 MySqlDataReader reader = cmd.ExecuteReader();
@@ -186,6 +196,7 @@ namespace CrunchSpaceTrucking
                     read++;
                     if (!reader.IsDBNull(4))
                     {
+                        //yeah i really dont understand why i load that from the database then do nothing with it
                         contractId = Guid.Parse(reader.GetString(4));
                     }
                 }
@@ -194,6 +205,8 @@ namespace CrunchSpaceTrucking
                     TruckingPlugin.Log.Info("No contract to load from database " + steamid);
                     return;
                 }
+            
+
                 reader.Close();
                 if (completed)
                 {
