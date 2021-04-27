@@ -24,7 +24,9 @@ namespace CrunchSpaceTrucking
                 string sql = "CREATE DATABASE IF NOT EXISTS spacetrucking";
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
-
+                sql = "CREATE TABLE IF NOT EXISTS spacetrucking.whitelist(playerid BIGINT UNSIGNED PRIMARY KEY)";
+                cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
                 sql = "CREATE TABLE IF NOT EXISTS spacetrucking.players(playerid BIGINT UNSIGNED PRIMARY KEY, reputation INT NOT NULL, completed INT NOT NULL, failed INT NOT NULL, currentContract CHAR(36))";
                 cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
@@ -45,7 +47,113 @@ namespace CrunchSpaceTrucking
             conn.Close();
             TruckingPlugin.Log.Info("Created the tables if it needed to");
         }
+        public static Boolean AddMultipleToWhitelist(String[] ids)
+        {
 
+
+            MySqlConnection conn = new MySqlConnection(connStr);
+            try
+            {
+                //add this id to the whitelist
+                conn.Open();
+                foreach (String id in ids)
+                {
+                    string sql = "INSERT INTO spacetrucking.whitelist(playerid) VALUES ROW (" + ulong.Parse(id) + ") ON DUPLICATE KEY UPDATE playerid=" + ulong.Parse(id) + "";
+                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                    TruckingPlugin.Whitelist.Remove(ulong.Parse(id));
+                    TruckingPlugin.Whitelist.Add(ulong.Parse(id));
+                }
+            }
+            catch (Exception ex)
+            {
+                conn.Close();
+                TruckingPlugin.Log.Info(ex.ToString());
+                return false;
+            }
+            conn.Close();
+            TruckingPlugin.Log.Info("Added to whitelist " + ids.ToString());
+            return true;
+        }
+        public static Boolean AddToWhitelist(ulong steamId)
+        {
+
+
+            MySqlConnection conn = new MySqlConnection(connStr);
+            try
+            {
+                //add this id to the whitelist
+                conn.Open();
+                string sql = "INSERT INTO spacetrucking.whitelist(playerid) VALUES ROW (" + steamId + ") ON DUPLICATE KEY UPDATE playerid=" + steamId + "";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+                TruckingPlugin.Whitelist.Remove(steamId);
+                TruckingPlugin.Whitelist.Add(steamId);
+                
+            }
+            catch (Exception ex)
+            {
+                conn.Close();
+                TruckingPlugin.Log.Info(ex.ToString());
+                return false;
+            }
+            conn.Close();
+            TruckingPlugin.Log.Info("Added to whitelist " + steamId);
+            return true;
+        }
+        public static Boolean RemoveFromWhitelist(ulong steamId)
+        {
+
+
+            MySqlConnection conn = new MySqlConnection(connStr);
+            try
+            {
+                //remove this id to the whitelist
+                conn.Open();
+                string sql = "DELETE FROM spacetrucking.whitelist where playerid = "+ steamId + "";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+                TruckingPlugin.Whitelist.Remove(steamId);
+
+            }
+            catch (Exception ex)
+            {
+                conn.Close();
+                TruckingPlugin.Log.Info(ex.ToString());
+                return false;
+            }
+            conn.Close();
+            TruckingPlugin.Log.Info("Removed from whitelist " + steamId);
+            return true;
+        }
+        public static Boolean RemoveMultipleFromWhitelist(String[] ids)
+        {
+
+
+            MySqlConnection conn = new MySqlConnection(connStr);
+            try
+            {
+                //add this id to the whitelist
+                conn.Open();
+                foreach (String id in ids)
+                {
+                    string sql = "DELETE FROM spacetrucking.whitelist where playerid = " + ulong.Parse(id) + "";
+                 
+                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                    TruckingPlugin.Whitelist.Remove(ulong.Parse(id));
+                }
+            }
+            catch (Exception ex)
+            {
+                conn.Close();
+                TruckingPlugin.Log.Info(ex.ToString());
+                return false;
+            }
+            conn.Close();
+            TruckingPlugin.Log.Info("Remove from whitelist " + ids.ToString());
+            return true;
+        }
         public static void addNewContract(ulong steamId, Contract contract)
         {
         
@@ -82,7 +190,35 @@ namespace CrunchSpaceTrucking
             conn.Close();
             TruckingPlugin.Log.Info("Inserted a new contract for whoever this is " + steamId);
         }
+        public static void LoadWhitelist()
+        {
 
+            MySqlConnection conn = new MySqlConnection(connStr);
+            try
+            {
+                conn.Open();
+                //Load everything from the whitelist
+                string sql = "select * from spacetrucking.whitelist";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                MySqlDataReader reader = cmd.ExecuteReader();
+                //load their reputation first
+                while (reader.Read())
+                {
+                    TruckingPlugin.Whitelist.Add(ulong.Parse(reader.GetString(0)));
+                }
+                reader.Close();
+
+                conn.Close();
+            }
+            catch (Exception ex)
+            {
+                conn.Close();
+                TruckingPlugin.Log.Info("Error loading whitelist");
+
+            }
+            conn.Close();
+            return;
+        }
         public static Contract TryGetContract(ulong steamid)
         {
          
@@ -205,8 +341,7 @@ namespace CrunchSpaceTrucking
                     TruckingPlugin.Log.Info("No contract to load from database " + steamid);
                     return;
                 }
-            
-
+                
                 reader.Close();
                 if (completed)
                 {

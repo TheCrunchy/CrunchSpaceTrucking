@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Torch.Commands;
 using Torch.Commands.Permissions;
@@ -25,7 +26,96 @@ namespace CrunchSpaceTrucking
 {
     public class Commands : CommandModule
     {
+        //stackoverflow 
+        public static string RemoveWhitespace(string input)
+        {
+            return string.Concat(input.Where(c => !char.IsWhiteSpace(c)));
+        }
 
+        [Command("contract whitelist add", "add to contract whitelist")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void AddWhitelist(string input)
+        {
+            //if (input.Contains(","))
+            //{
+            //    //input = input.Replace(" ", "");
+
+            //    String input2 = RemoveWhitespace(input);
+            //    String[] ids = input2.Split(',');
+
+            //    if (Database.AddMultipleToWhitelist(ids))
+            //    {
+            //        Context.Respond("Added them");
+            //    }
+            //    else
+            //    {
+            //        Context.Respond("Error adding them");
+            //    }
+
+            //}
+            //else
+            //{
+            if (Database.AddToWhitelist(ulong.Parse(input)))
+            {
+                Context.Respond("Added " + input + " to whitelist");
+            }
+            else
+            {
+                Context.Respond("Error adding them, remember no spaces!");
+            }
+            //   }
+        }
+
+        [Command("contract whitelist remove", "add to contract whitelist")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void RemoveWhitelist(string input)
+        {
+            //if (input.Contains(","))
+            //{
+            //   String input2 = RemoveWhitespace(input);
+            //    String[] ids = input2.Split(',');
+            //    if (Database.RemoveMultipleFromWhitelist(ids))
+            //    {
+            //        Context.Respond("Removed them");
+            //    }
+            //    else
+            //    {
+            //        Context.Respond("Error removing them");
+            //    }
+            //}
+            //else
+            //{
+            if (Database.RemoveFromWhitelist(ulong.Parse(input)))
+            {
+                Context.Respond("Removed " + input + " from whitelist");
+            }
+
+            else
+            {
+                Context.Respond("Error removing them, remember no spaces!");
+            }
+            //}
+        }
+        [Command("contract whitelist output", "output")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void OutputWHitelist()
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (ulong id in TruckingPlugin.Whitelist)
+            {
+                sb.AppendLine(id.ToString());
+
+            }
+            Context.Respond(sb.ToString());
+        }
+
+        [Command("contract reload", "reload config")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void reload()
+        {
+            TruckingPlugin.LoadConfig();
+            Context.Respond("Reloaded");
+        }
         [Command("truck", "output definitions")]
         [Permission(MyPromoteLevel.Admin)]
         public void OutputDefinitions()
@@ -119,7 +209,7 @@ namespace CrunchSpaceTrucking
         [Permission(MyPromoteLevel.None)]
         public void ContractDetails()
         {
-       
+
             StringBuilder contractDetails = new StringBuilder();
             if (TruckingPlugin.getActiveContract(Context.Player.SteamUserId) != null)
             {
@@ -153,52 +243,54 @@ namespace CrunchSpaceTrucking
             {
                 Vector3D coords = contract.GetDeliveryLocation().Coords;
                 float distance = Vector3.Distance(coords, Context.Player.Character.PositionComp.GetPosition());
-                  if (distance <= 1000)
-                   {
-
-                List<VRage.ModAPI.IMyEntity> l = new List<VRage.ModAPI.IMyEntity>();
-
-                BoundingSphereD sphere = new BoundingSphereD(Context.Player.Character.PositionComp.GetPosition(), 1000);
-                l = MyAPIGateway.Entities.GetEntitiesInSphere(ref sphere);
-
-                Dictionary<MyDefinitionId, int> itemsToRemove = new Dictionary<MyDefinitionId, int>();
-                int pay = 0;
-                foreach (ContractItems item in contract.getItemsInContract())
+                if (distance <= 1000)
                 {
-                    if (MyDefinitionId.TryParse("MyObjectBuilder_" + item.ItemType, item.SubType, out MyDefinitionId id))
-                    {
-                        itemsToRemove.Add(id, item.AmountToDeliver);
-                        pay += item.AmountToDeliver * item.GetPrice();
-                    } else
-                    {
-                        Context.Respond("Theres an error in the config for this item, report in a ticket " + id.SubtypeName + " " + id.TypeId);
-                    }
-                }
 
-                foreach (IMyEntity entity in l)
-                {
-                    if (entity is MyCubeGrid grid)
+                    List<VRage.ModAPI.IMyEntity> l = new List<VRage.ModAPI.IMyEntity>();
+
+                    BoundingSphereD sphere = new BoundingSphereD(Context.Player.Character.PositionComp.GetPosition(), 1000);
+                    l = MyAPIGateway.Entities.GetEntitiesInSphere(ref sphere);
+
+                    Dictionary<MyDefinitionId, int> itemsToRemove = new Dictionary<MyDefinitionId, int>();
+                    int pay = 0;
+                    foreach (ContractItems item in contract.getItemsInContract())
                     {
-                        List<VRage.Game.ModAPI.IMyInventory> inventories = TakeTheItems.GetInventories(grid);
-                        if (FacUtils.IsOwnerOrFactionOwned(grid, Context.Player.IdentityId, true))
+                        if (MyDefinitionId.TryParse("MyObjectBuilder_" + item.ItemType, item.SubType, out MyDefinitionId id))
                         {
-                            if (TakeTheItems.ConsumeComponents(inventories, itemsToRemove, Context.Player.SteamUserId))
+                            itemsToRemove.Add(id, item.AmountToDeliver);
+                            pay += item.AmountToDeliver * item.GetPrice();
+                        }
+                        else
+                        {
+                            Context.Respond("Theres an error in the config for this item, report in a ticket " + id.SubtypeName + " " + id.TypeId);
+                        }
+                    }
+
+                    foreach (IMyEntity entity in l)
+                    {
+                        if (entity is MyCubeGrid grid)
+                        {
+                            List<VRage.Game.ModAPI.IMyInventory> inventories = TakeTheItems.GetInventories(grid);
+                            if (FacUtils.IsOwnerOrFactionOwned(grid, Context.Player.IdentityId, true))
                             {
-                                MyBankingSystem.ChangeBalance(Context.Player.Identity.IdentityId, pay);
-                                Database.RemoveContract(Context.Player.SteamUserId, true , contract, Context.Player.IdentityId);
+                                if (TakeTheItems.ConsumeComponents(inventories, itemsToRemove, Context.Player.SteamUserId))
+                                {
+                                    MyBankingSystem.ChangeBalance(Context.Player.Identity.IdentityId, pay);
+                                    Database.RemoveContract(Context.Player.SteamUserId, true, contract, Context.Player.IdentityId);
                                     TruckingPlugin.SendMessage("The Boss", "Contract Complete, Payment delivered to bank account.", Color.Purple, Context.Player.SteamUserId);
                                     return;
+                                }
                             }
                         }
                     }
+                    Context.Respond("Could not find owned grid in vicinity with the required items.", "The Boss");
+
+
                 }
-                Context.Respond("Could not find owned grid in vicinity with the required items.", "The Boss");
-
-
-                  }
-                 else {
-                     Context.Respond("You arent close enough to the delivery point! Must be within 1km of signal", "The Boss");
-                 }
+                else
+                {
+                    Context.Respond("You arent close enough to the delivery point! Must be within 1km of signal", "The Boss");
+                }
             }
             else
             {
@@ -232,7 +324,7 @@ namespace CrunchSpaceTrucking
             else
             {
                 TruckingPlugin.GenerateContract(Context.Player.SteamUserId, Context.Player.IdentityId);
-              
+
             }
 
         }

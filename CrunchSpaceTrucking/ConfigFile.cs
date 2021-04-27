@@ -8,6 +8,8 @@ namespace CrunchSpaceTrucking
 {
     public class ConfigFile
     {
+        public Boolean UsingWhitelist = false;
+        public string WhitelistMessage = "You must have the TTN designation to use these!";
         public string DatabaseIP = "localhost";
         public string DatabaseUser = "fred";
         public int DatabasePort = 3306;

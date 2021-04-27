@@ -88,6 +88,15 @@ namespace CrunchSpaceTrucking
 
         public static Boolean GenerateContract(ulong steamid, long identityid)
         {
+            if (config.UsingWhitelist)
+            {
+                if (!Whitelist.Contains(steamid))
+                {
+                    DialogMessage m = new DialogMessage("Contract Failure", "Fail", config.WhitelistMessage);
+                    ModCommunication.SendMessageTo(m, steamid);
+                    return false;
+                }
+            }
             if (getActiveContract(steamid) != null)
             {
                 TruckingPlugin.SendMessage("The Boss", "You already have a contract!", Color.Red, steamid);
@@ -98,6 +107,7 @@ namespace CrunchSpaceTrucking
             else
             {
                 //this code is awful and i want to redo it, probably throwing the generation in a new method and changing this reputation check to just change the amount
+         
                 if (reputation.TryGetValue(steamid, out int rep))
                 {
 
@@ -211,14 +221,24 @@ namespace CrunchSpaceTrucking
             MyMultiplayerBase.SendScriptedChatMessage(ref scriptedChatMsg2);
         }
         private int tick = 0;
+        public static DateTime nextUpdate = DateTime.Now;
+        public static List<ulong> Whitelist = new List<ulong>(); 
         public override void Update()
         {
             try
             {
                 //slow this shit down so it doesnt lag out console, 32 is fine but i dont think it needs to check that often
                 ++this.tick;
-                if (this.tick % 128 == 0)
+
+
+                    if (this.tick % 128 == 0)
                 {
+                    if (DateTime.Now >= nextUpdate && config.UsingWhitelist)
+                    {
+                        nextUpdate = DateTime.Now.AddMinutes(5);
+                        Whitelist.Clear();
+                        Database.LoadWhitelist();
+                    }
                     foreach (MyPlayer onlinePlayer in MySession.Static.Players.GetOnlinePlayers())
                     {
                         MyPlayer playerOnline = onlinePlayer;

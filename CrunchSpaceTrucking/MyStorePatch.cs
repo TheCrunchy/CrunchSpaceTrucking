@@ -35,25 +35,25 @@ namespace CrunchSpaceTrucking
             ctx.GetPattern(update).Prefixes.Add(storePatch);
         }
 
-        public static bool StorePatchMethod(MyStoreBlock __instance, long id, int amount, long targetEntityId, MyPlayer player, MyAccountInfo playerAccountInfo)
+        public static Boolean StorePatchMethod(MyStoreBlock __instance, long id, int amount, long targetEntityId, MyPlayer player, MyAccountInfo playerAccountInfo)
         {
 
             MyStoreItem storeItem = (MyStoreItem)null;
-            bool faction = false;
+            bool proceed = false;
             foreach (MyStoreItem playerItem in __instance.PlayerItems)
             {
 
                 MyCubeGrid grid = __instance.CubeGrid;
                 if (FacUtils.GetFactionTag(FacUtils.GetOwner(grid)) != null && FacUtils.GetFactionTag(FacUtils.GetOwner(grid)).Length > 3 && TruckingPlugin.config.NPCGridContracts)
                 {
-                    faction = true;
+                    proceed = true;
                 }
                 if (!grid.Editable || !grid.DestructibleBlocks)
                 {
-                    faction = true;
+                    proceed = true;
                 }
 
-                if (__instance.DisplayNameText != null && __instance.DisplayNameText.ToLower().Contains("hauling contracts") && faction)
+                if (__instance.DisplayNameText != null && __instance.DisplayNameText.ToLower().Contains("hauling contracts") && proceed)
                 {
 
                     if (playerItem.Id == id)
@@ -64,14 +64,21 @@ namespace CrunchSpaceTrucking
 
                 }
             }
-            if (storeItem != null && faction)
+            if (storeItem != null && proceed)
             {
-                if (!TruckingPlugin.GenerateContract(player.Id.SteamId, player.Identity.IdentityId))
+                if (MyBankingSystem.GetBalance(player.Identity.IdentityId) >= storeItem.PricePerUnit)
                 {
-                    return false;
+                    if (!TruckingPlugin.GenerateContract(player.Id.SteamId, player.Identity.IdentityId))
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        MyBankingSystem.ChangeBalance(player.Identity.IdentityId, (storeItem.PricePerUnit * -1));
+                    }
                 }
             }
-            return true;
+            return false;
         }
     }
 }
