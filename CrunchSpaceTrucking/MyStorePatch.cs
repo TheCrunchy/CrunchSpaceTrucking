@@ -64,21 +64,30 @@ namespace CrunchSpaceTrucking
 
                 }
             }
+            //this does things
             if (storeItem != null && proceed)
             {
                 if (MyBankingSystem.GetBalance(player.Identity.IdentityId) >= storeItem.PricePerUnit)
                 {
+                    //if it cant generate a contract, return false
                     if (!TruckingPlugin.GenerateContract(player.Id.SteamId, player.Identity.IdentityId))
                     {
                         return false;
                     }
                     else
                     {
+                        //do the money transfers then return false so the item stays in the store
                         MyBankingSystem.ChangeBalance(player.Identity.IdentityId, (storeItem.PricePerUnit * -1));
+                        MyBankingSystem.ChangeBalance(__instance.OwnerId, storeItem.PricePerUnit);
+                        return false;
                     }
                 }
+                else
+                {
+                    return false;
+                }
             }
-            return false;
+            return true;
         }
     }
 }
