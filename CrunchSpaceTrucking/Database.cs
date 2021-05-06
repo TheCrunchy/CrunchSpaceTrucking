@@ -42,7 +42,7 @@ namespace CrunchSpaceTrucking
             catch (Exception ex)
             {
                 conn.Close();
-                TruckingPlugin.Log.Info(ex.ToString());
+                TruckingPlugin.Log.Error(ex.ToString());
             }
             conn.Close();
             TruckingPlugin.Log.Info("Created the tables if it needed to");
@@ -308,7 +308,7 @@ namespace CrunchSpaceTrucking
             catch (Exception ex)
             {
                 conn.Close();
-                TruckingPlugin.Log.Info("This error with the mysql isnt fixed, its safe to ignore it " + steamid);
+                TruckingPlugin.Log.Info("Error on loading data, either not connected or user has no data " + steamid);
               
             }
             conn.Close();
