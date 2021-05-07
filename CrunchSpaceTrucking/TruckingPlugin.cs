@@ -74,6 +74,10 @@ namespace CrunchSpaceTrucking
         {
             FileUtils utils = new FileUtils();
             path = StoragePath;
+            if (!Directory.Exists(TruckingPlugin.path + "//SpaceTrucking"))
+            {
+                Directory.CreateDirectory(TruckingPlugin.path + "//SpaceTrucking");
+            }   
             if (File.Exists(TruckingPlugin.path + "//SpaceTrucking//config.xml"))
             {
                 config = utils.ReadFromXmlFile<ConfigFile>(TruckingPlugin.path + "//SpaceTrucking//config.xml");
@@ -356,7 +360,7 @@ namespace CrunchSpaceTrucking
             //check theres at least one item on the contract, if not pick one at complete random
             if (returnList.Count == 0)
             {
-                int index = random.Next(SortedList.Count);
+                int index = random.Next(SortedList.Count - 1);
                 ContractItems temp = SortedList.ElementAt(index);
 
                 returnList.Add(temp);
